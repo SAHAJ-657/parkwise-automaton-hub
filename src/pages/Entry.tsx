@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Camera, Scan, CreditCard, MapPin, Wheelchair } from "lucide-react";
+import { ArrowLeft, Camera, Scan, CreditCard, MapPin, Accessibility } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -130,7 +130,7 @@ const Entry = () => {
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 p-6 bg-purple-600/20 rounded-full w-fit">
-                <Wheelchair className="h-16 w-16 text-purple-500" />
+                <Accessibility className="h-16 w-16 text-purple-500" />
               </div>
               <CardTitle className="text-2xl text-white">Accessibility Check</CardTitle>
               <CardDescription className="text-slate-400">
@@ -145,7 +145,7 @@ const Entry = () => {
               <div className="grid md:grid-cols-2 gap-6">
                 <Card className="bg-slate-900/50 border-slate-600 cursor-pointer hover:border-purple-500 transition-colors" onClick={() => handleDisabilityCheck(true)}>
                   <CardContent className="p-8 text-center">
-                    <Wheelchair className="h-12 w-12 text-purple-500 mx-auto mb-4" />
+                    <Accessibility className="h-12 w-12 text-purple-500 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-white mb-2">Yes, I need accessible parking</h3>
                     <p className="text-slate-400">Reserve a disability-accessible spot</p>
                     <Button className="mt-4 bg-purple-600 hover:bg-purple-700 w-full">
