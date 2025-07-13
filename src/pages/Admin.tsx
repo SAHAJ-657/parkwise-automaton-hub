@@ -19,6 +19,7 @@ const Admin = () => {
   ]);
   const [newSpot, setNewSpot] = useState({ id: '', name: '', type: 'regular' });
   const [isAddingSpot, setIsAddingSpot] = useState(false);
+  const [revenue, setRevenue] = useState(0);
 
   // Load spots from localStorage on component mount
   useEffect(() => {
@@ -27,6 +28,15 @@ const Admin = () => {
       setSpots(JSON.parse(savedSpots));
     }
   }, []);
+
+  // Calculate revenue based on occupied spots
+  useEffect(() => {
+    const occupiedCount = spots.filter(s => s.occupied).length;
+    const baseRate = 50;
+    const gst = Math.round(baseRate * 0.18);
+    const totalPerVehicle = baseRate + gst;
+    setRevenue(occupiedCount * totalPerVehicle);
+  }, [spots]);
 
   // Save spots to localStorage whenever spots change
   useEffect(() => {
@@ -41,6 +51,11 @@ const Admin = () => {
       toast.error("Invalid password! Please try again.");
       setPassword("");
     }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    navigate('/');
   };
 
   const handleAddSpot = () => {
@@ -134,7 +149,7 @@ const Admin = () => {
             <h1 className="text-3xl font-bold text-white">Admin Panel</h1>
           </div>
           <Button 
-            onClick={() => setIsAuthenticated(false)}
+            onClick={handleLogout}
             variant="outline"
             className="border-slate-600 text-slate-300 hover:bg-slate-800"
           >
@@ -144,7 +159,7 @@ const Admin = () => {
         </div>
 
         {/* Current Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
               <CardTitle className="text-slate-300 text-sm font-medium">Total Spots</CardTitle>
@@ -173,6 +188,15 @@ const Admin = () => {
               <div className="text-2xl font-bold text-red-500">
                 {spots.filter(s => s.occupied).length}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-slate-300 text-sm font-medium">Today's Revenue</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-500">₹{revenue}</div>
             </CardContent>
           </Card>
         </div>
@@ -266,9 +290,13 @@ const Admin = () => {
                       }`}>
                         {spot.id}
                       </div>
-                      <div className={`w-4 h-4 rounded-full ${
+                      <div className={`w-8 h-8 rounded flex items-center justify-center ${
                         spot.occupied ? 'bg-red-500' : 'bg-green-500'
-                      }`} />
+                      }`}>
+                        <div className={`w-4 h-4 rounded ${
+                          spot.occupied ? 'bg-red-300' : 'bg-green-300'
+                        }`} />
+                      </div>
                     </div>
                     <div className="mb-3">
                       <div className="text-white font-semibold">{spot.name}</div>

@@ -62,7 +62,8 @@ const Entry = () => {
       localStorage.setItem('currentVehicle', JSON.stringify({
         plateNumber: vehicleData.plateNumber,
         spot: randomSpot.id,
-        entryTime: Date.now()
+        entryTime: Date.now(),
+        amount: 59 // total with tax
       }));
 
       // Update spots occupancy
@@ -158,8 +159,7 @@ const Entry = () => {
                   <Button 
                     onClick={handleManualEntry}
                     disabled={!vehicleData.plateNumber}
-                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-600"
-                    variant="outline"
+                    className="bg-slate-700 hover:bg-slate-600 text-slate-300"
                   >
                     Next
                   </Button>
@@ -246,13 +246,13 @@ const Entry = () => {
                 <div className="flex justify-center mb-4">
                   <div className="bg-white p-4 rounded-lg">
                     <img 
-                      src="https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=200&h=200&fit=crop&crop=center" 
+                      src="https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=200&h=200&fit=crop&crop=center" 
                       alt="UPI QR Code for Payment" 
                       className="w-48 h-48 object-cover"
                     />
                   </div>
                 </div>
-                <p className="text-lg font-semibold text-purple-400 mb-2">Nashik-1</p>
+                <p className="text-lg font-semibold text-purple-400 mb-2">ParkWise Payment</p>
                 <p className="text-slate-400 text-sm">Scan with PhonePe, GooglePay, Paytm or any UPI app</p>
               </div>
 

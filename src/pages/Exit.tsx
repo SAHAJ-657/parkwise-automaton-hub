@@ -42,20 +42,17 @@ const Exit = () => {
     
     const exitTime = new Date();
     const durationMs = exitTime.getTime() - entryTime.getTime();
-    const durationHours = Math.round((durationMs / (1000 * 60 * 60)) * 10) / 10;
+    const durationHours = Math.max(0.1, Math.round((durationMs / (1000 * 60 * 60)) * 10) / 10);
     const overtimeFee = durationHours > 4 ? Math.round((durationHours - 4) * 20) : 0;
-    const baseAmount = 50;
-    const gst = Math.round(baseAmount * 0.18);
-    const totalAmount = baseAmount + gst + overtimeFee;
 
     setExitData({
       plateNumber: plateToUse,
       entryTime: entryTime.toLocaleString(),
       exitTime: exitTime.toLocaleString(),
       duration: durationHours,
-      baseAmount,
+      baseAmount: 50,
       overtimeFee,
-      totalAmount,
+      totalAmount: 0, // Customer already paid
       spot: spot
     });
 
@@ -69,7 +66,7 @@ const Exit = () => {
     }
   };
 
-  const handlePayment = () => {
+  const handleExit = () => {
     // Update spot occupancy and clear stored vehicle data
     const savedSpots = localStorage.getItem('parkingSpots');
     if (savedSpots) {
@@ -81,30 +78,11 @@ const Exit = () => {
     }
     
     localStorage.removeItem('currentVehicle');
-    toast.success("Payment successful! Thank you for using ParkWise!");
+    toast.success("Thank you for using ParkWise! Have a great day!");
     setTimeout(() => {
       toast.success(`Spot ${exitData.spot} is now available`);
       navigate('/');
     }, 2000);
-  };
-
-  const handleFreeExit = () => {
-    // Update spot occupancy and clear stored vehicle data
-    const savedSpots = localStorage.getItem('parkingSpots');
-    if (savedSpots) {
-      const spots = JSON.parse(savedSpots);
-      const updatedSpots = spots.map(spot => 
-        spot.id === exitData.spot ? { ...spot, occupied: false } : spot
-      );
-      localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
-    }
-    
-    localStorage.removeItem('currentVehicle');
-    toast.success("No overtime charges. Have a great day!");
-    setTimeout(() => {
-      toast.success(`Spot ${exitData.spot} is now available`);
-      navigate('/');
-    }, 1500);
   };
 
   return (
@@ -183,8 +161,7 @@ const Exit = () => {
                   <Button 
                     onClick={handleManualSearch}
                     disabled={!manualPlate}
-                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-600"
-                    variant="outline"
+                    className="bg-slate-700 hover:bg-slate-600 text-slate-300"
                   >
                     Search
                   </Button>
@@ -227,92 +204,51 @@ const Exit = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Duration:</span>
-                      <span className="text-white font-semibold">{exitData.duration} hours</span>
+                      <span className="text-white font-semibold">{exitData.duration}h</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Base Amount:</span>
-                      <span className="text-white">₹{exitData.baseAmount}</span>
+                      <span className="text-slate-400">Status:</span>
+                      <span className="text-green-400 font-semibold">PAID</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">GST (18%):</span>
-                      <span className="text-white">₹{Math.round(exitData.baseAmount * 0.18)}</span>
+                      <span className="text-slate-400">Amount Due:</span>
+                      <span className="text-green-400 font-semibold">₹0</span>
                     </div>
-                    {exitData.overtimeFee > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-orange-400 flex items-center gap-1">
-                          <AlertTriangle className="h-4 w-4" />
-                          Overtime Fee:
-                        </span>
-                        <span className="text-orange-400 font-semibold">₹{exitData.overtimeFee}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Payment Section */}
+            {/* Exit Section */}
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader className="text-center">
-                <div className={`mx-auto mb-4 p-6 rounded-full w-fit ${
-                  exitData.overtimeFee > 0 ? 'bg-orange-600/20' : 'bg-green-600/20'
-                }`}>
-                  {exitData.overtimeFee > 0 ? (
-                    <CreditCard className="h-16 w-16 text-orange-500" />
-                  ) : (
-                    <CheckCircle className="h-16 w-16 text-green-500" />
-                  )}
+                <div className="mx-auto mb-4 p-6 bg-green-600/20 rounded-full w-fit">
+                  <CheckCircle className="h-16 w-16 text-green-500" />
                 </div>
-                <CardTitle className="text-2xl text-white">
-                  {exitData.overtimeFee > 0 ? 'Payment Required' : 'Ready to Exit'}
-                </CardTitle>
+                <CardTitle className="text-2xl text-white">Ready to Exit</CardTitle>
                 <CardDescription className="text-slate-400">
-                  {exitData.overtimeFee > 0 
-                    ? 'Overtime charges apply for extended parking'
-                    : 'Standard charges apply. You can exit now.'
-                  }
+                  Payment already completed. You can exit now.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Total Amount */}
                 <div className="bg-slate-900/50 p-6 rounded-lg text-center">
-                  <h3 className="text-lg text-slate-400 mb-2">Total Amount</h3>
-                  <div className={`text-4xl font-bold mb-4 ${
-                    exitData.overtimeFee > 0 ? 'text-orange-500' : 'text-blue-500'
-                  }`}>
-                    ₹{exitData.totalAmount}
-                  </div>
-                  
+                  <h3 className="text-lg text-slate-400 mb-2">Amount Due</h3>
+                  <div className="text-4xl font-bold mb-4 text-green-500">₹0</div>
                   <div className="text-sm text-slate-400 space-y-1">
-                    <div>Base Rate (4 hours): ₹{exitData.baseAmount}</div>
-                    <div>GST (18%): ₹{Math.round(exitData.baseAmount * 0.18)}</div>
-                    {exitData.overtimeFee > 0 && (
-                      <div>Overtime ({(exitData.duration - 4).toFixed(1)} hours @ ₹20/hr): ₹{exitData.overtimeFee}</div>
-                    )}
+                    <div className="text-green-400">✓ Payment completed during entry</div>
+                    <div className="text-green-400">✓ No additional charges</div>
                   </div>
                 </div>
 
-                {/* Action Button */}
                 <div className="text-center">
-                  {exitData.overtimeFee > 0 ? (
-                    <Button 
-                      onClick={handlePayment}
-                      className="bg-orange-600 hover:bg-orange-700 text-white py-6 px-12 text-xl"
-                      size="lg"
-                    >
-                      <CreditCard className="mr-3 h-6 w-6" />
-                      Pay ₹{exitData.totalAmount} with UPI
-                    </Button>
-                  ) : (
-                    <Button 
-                      onClick={handlePayment}
-                      className="bg-blue-600 hover:bg-blue-700 text-white py-6 px-12 text-xl"
-                      size="lg"
-                    >
-                      <CheckCircle className="mr-3 h-6 w-6" />
-                      Pay ₹{exitData.totalAmount} & Exit
-                    </Button>
-                  )}
+                  <Button 
+                    onClick={handleExit}
+                    className="bg-green-600 hover:bg-green-700 text-white py-6 px-12 text-xl"
+                    size="lg"
+                  >
+                    <CheckCircle className="mr-3 h-6 w-6" />
+                    Exit Now
+                  </Button>
                 </div>
               </CardContent>
             </Card>

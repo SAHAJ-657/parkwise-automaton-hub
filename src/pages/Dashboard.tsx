@@ -12,6 +12,7 @@ const Dashboard = () => {
     { id: 'A-2', name: 'A-2', type: 'regular', occupied: false },
     { id: 'D-1', name: 'D-1', type: 'disability', occupied: false },
   ]);
+  const [revenue, setRevenue] = useState(0);
 
   // Load spots from localStorage if available
   useEffect(() => {
@@ -20,6 +21,15 @@ const Dashboard = () => {
       setSpots(JSON.parse(savedSpots));
     }
   }, []);
+
+  // Calculate revenue based on occupied spots
+  useEffect(() => {
+    const occupiedCount = spots.filter(s => s.occupied).length;
+    const baseRate = 50;
+    const gst = Math.round(baseRate * 0.18);
+    const totalPerVehicle = baseRate + gst;
+    setRevenue(occupiedCount * totalPerVehicle);
+  }, [spots]);
 
   // Get current vehicle data to update spot occupancy
   useEffect(() => {
@@ -38,8 +48,6 @@ const Dashboard = () => {
 
   // Get real stats from spots data
   const totalSpots = spots.length;
-  const regularSpots = spots.filter(s => s.type === 'regular').length;
-  const disabilitySpots = spots.filter(s => s.type === 'disability').length;
   const occupiedSpots = spots.filter(s => s.occupied).length;
   const availableSpots = totalSpots - occupiedSpots;
 
@@ -59,8 +67,8 @@ const Dashboard = () => {
             onClick={() => navigate('/entry')}
           >
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-6 bg-slate-700/50 rounded-full w-fit">
-                <Car className="h-16 w-16 text-slate-400" />
+              <div className="mx-auto mb-4 p-6 bg-green-600/20 rounded-full w-fit">
+                <Car className="h-16 w-16 text-green-400" />
               </div>
               <CardTitle className="text-2xl text-white">Vehicle Entry</CardTitle>
               <CardDescription className="text-slate-300">
@@ -68,7 +76,7 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button className="bg-slate-700 hover:bg-slate-600 text-white py-3 px-8 text-lg">
+              <Button className="bg-green-700 hover:bg-green-600 text-white py-3 px-8 text-lg">
                 Start Entry Process
               </Button>
             </CardContent>
@@ -79,8 +87,8 @@ const Dashboard = () => {
             onClick={() => navigate('/exit')}
           >
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-6 bg-slate-700/50 rounded-full w-fit">
-                <LogOut className="h-16 w-16 text-slate-400" />
+              <div className="mx-auto mb-4 p-6 bg-red-600/20 rounded-full w-fit">
+                <LogOut className="h-16 w-16 text-red-400" />
               </div>
               <CardTitle className="text-2xl text-white">Vehicle Exit</CardTitle>
               <CardDescription className="text-slate-300">
@@ -88,7 +96,7 @@ const Dashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button className="bg-slate-700 hover:bg-slate-600 text-white py-3 px-8 text-lg">
+              <Button className="bg-red-700 hover:bg-red-600 text-white py-3 px-8 text-lg">
                 Start Exit Process
               </Button>
             </CardContent>
@@ -131,7 +139,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-500">0h</div>
+              <div className="text-2xl font-bold text-blue-500">4h</div>
               <p className="text-slate-500 text-sm">per vehicle</p>
             </CardContent>
           </Card>
@@ -144,7 +152,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-500">₹0</div>
+              <div className="text-2xl font-bold text-purple-500">₹{revenue}</div>
               <p className="text-slate-500 text-sm">from {occupiedSpots} vehicles</p>
             </CardContent>
           </Card>
@@ -158,7 +166,7 @@ const Dashboard = () => {
               <Button 
                 onClick={() => navigate('/admin')}
                 variant="outline"
-                className="border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 py-2 px-6"
+                className="border-slate-600 bg-slate-700/50 text-slate-300 hover:bg-slate-600 py-2 px-6"
               >
                 <Settings className="h-5 w-5 mr-2" />
                 Admin Panel
