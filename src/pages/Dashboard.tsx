@@ -3,9 +3,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Car, LogOut, Users, Settings, TrendingUp, MapPin, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [spots, setSpots] = useState([
+    { id: 'A-1', name: 'A-1', type: 'regular' },
+    { id: 'A-2', name: 'A-2', type: 'regular' },
+    { id: 'D-1', name: 'D-1', type: 'disability' },
+  ]);
+
+  // Get real stats from spots data
+  const totalSpots = spots.length;
+  const regularSpots = spots.filter(s => s.type === 'regular').length;
+  const disabilitySpots = spots.filter(s => s.type === 'disability').length;
+  const occupiedSpots = 0; // No vehicles currently parked
+  const availableSpots = totalSpots - occupiedSpots;
+
+  // Load spots from localStorage if available
+  useEffect(() => {
+    const savedSpots = localStorage.getItem('parkingSpots');
+    if (savedSpots) {
+      setSpots(JSON.parse(savedSpots));
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
@@ -59,7 +80,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Quick Stats */}
+        {/* Quick Stats - Real Data Only */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader className="pb-2">
@@ -69,8 +90,8 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-500">23</div>
-              <p className="text-slate-500 text-sm">out of 50 total</p>
+              <div className="text-2xl font-bold text-green-500">{availableSpots}</div>
+              <p className="text-slate-500 text-sm">out of {totalSpots} total</p>
             </CardContent>
           </Card>
 
@@ -82,8 +103,8 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-500">27</div>
-              <p className="text-slate-500 text-sm">54% occupancy</p>
+              <div className="text-2xl font-bold text-orange-500">{occupiedSpots}</div>
+              <p className="text-slate-500 text-sm">{totalSpots > 0 ? Math.round((occupiedSpots / totalSpots) * 100) : 0}% occupancy</p>
             </CardContent>
           </Card>
 
@@ -95,7 +116,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-500">3.2h</div>
+              <div className="text-2xl font-bold text-blue-500">0h</div>
               <p className="text-slate-500 text-sm">per vehicle</p>
             </CardContent>
           </Card>
@@ -108,8 +129,8 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-500">₹8,450</div>
-              <p className="text-slate-500 text-sm">from 34 vehicles</p>
+              <div className="text-2xl font-bold text-purple-500">₹0</div>
+              <p className="text-slate-500 text-sm">from 0 vehicles</p>
             </CardContent>
           </Card>
         </div>
@@ -121,7 +142,8 @@ const Dashboard = () => {
               <h3 className="text-lg font-semibold text-white mb-4">System Management</h3>
               <Button 
                 onClick={() => navigate('/admin')}
-                className="bg-slate-600 hover:bg-slate-500 text-white py-2 px-6"
+                variant="outline"
+                className="border-slate-600 text-slate-300 hover:bg-slate-800 py-2 px-6"
               >
                 <Settings className="h-5 w-5 mr-2" />
                 Admin Panel

@@ -1,10 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Lock, Plus, Trash2, Settings } from "lucide-react";
+import { ArrowLeft, Lock, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -13,12 +13,25 @@ const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [spots, setSpots] = useState([
-    { id: 'A-1', name: 'Regular Spot 1', type: 'regular' },
-    { id: 'A-2', name: 'Regular Spot 2', type: 'regular' },
-    { id: 'D-1', name: 'Accessible Spot 1', type: 'disability' },
+    { id: 'A-1', name: 'A-1', type: 'regular' },
+    { id: 'A-2', name: 'A-2', type: 'regular' },
+    { id: 'D-1', name: 'D-1', type: 'disability' },
   ]);
   const [newSpot, setNewSpot] = useState({ id: '', name: '', type: 'regular' });
   const [isAddingSpot, setIsAddingSpot] = useState(false);
+
+  // Load spots from localStorage on component mount
+  useEffect(() => {
+    const savedSpots = localStorage.getItem('parkingSpots');
+    if (savedSpots) {
+      setSpots(JSON.parse(savedSpots));
+    }
+  }, []);
+
+  // Save spots to localStorage whenever spots change
+  useEffect(() => {
+    localStorage.setItem('parkingSpots', JSON.stringify(spots));
+  }, [spots]);
 
   const handleLogin = () => {
     if (password === "987321") {
@@ -32,7 +45,8 @@ const Admin = () => {
 
   const handleAddSpot = () => {
     if (newSpot.id && newSpot.name) {
-      setSpots([...spots, { ...newSpot }]);
+      const spotToAdd = { ...newSpot, name: newSpot.id }; // Make name same as ID
+      setSpots([...spots, spotToAdd]);
       setNewSpot({ id: '', name: '', type: 'regular' });
       setIsAddingSpot(false);
       toast.success("Parking spot added successfully!");
@@ -121,7 +135,7 @@ const Admin = () => {
           </Button>
         </div>
 
-        {/* Current Stats */}
+        {/* Current Stats - Real Data Only */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
@@ -145,7 +159,7 @@ const Admin = () => {
 
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
-              <CardTitle className="text-slate-300 text-sm font-medium">Accessible Spots</CardTitle>
+              <CardTitle className="text-slate-300 text-sm font-medium">Disability Spots</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-500">
@@ -182,23 +196,14 @@ const Admin = () => {
                   <CardTitle className="text-white text-lg">Add New Parking Spot</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid md:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-slate-300">Spot ID</Label>
+                      <Label className="text-slate-300">Spot ID/Name</Label>
                       <Input
                         placeholder="e.g., A-15"
                         className="bg-slate-800 border-slate-600 text-white"
                         value={newSpot.id}
-                        onChange={(e) => setNewSpot({...newSpot, id: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-slate-300">Spot Name</Label>
-                      <Input
-                        placeholder="e.g., Regular Spot 15"
-                        className="bg-slate-800 border-slate-600 text-white"
-                        value={newSpot.name}
-                        onChange={(e) => setNewSpot({...newSpot, name: e.target.value})}
+                        onChange={(e) => setNewSpot({...newSpot, id: e.target.value, name: e.target.value})}
                       />
                     </div>
                     <div>
@@ -209,7 +214,7 @@ const Admin = () => {
                         onChange={(e) => setNewSpot({...newSpot, type: e.target.value})}
                       >
                         <option value="regular">Regular</option>
-                        <option value="disability">Accessible</option>
+                        <option value="disability">Disability</option>
                       </select>
                     </div>
                   </div>

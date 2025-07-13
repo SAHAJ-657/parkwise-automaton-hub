@@ -121,7 +121,7 @@ const Entry = () => {
                   <Button 
                     onClick={handleManualEntry}
                     disabled={!vehicleData.plateNumber}
-                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-600"
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-300"
                   >
                     Next
                   </Button>
@@ -138,22 +138,22 @@ const Entry = () => {
               <div className="mx-auto mb-4 p-6 bg-purple-600/20 rounded-full w-fit">
                 <Accessibility className="h-16 w-16 text-purple-500" />
               </div>
-              <CardTitle className="text-2xl text-white">Accessibility Check</CardTitle>
+              <CardTitle className="text-2xl text-white">Disability Check</CardTitle>
               <CardDescription className="text-slate-400">
                 Detected: <span className="text-white font-mono">{vehicleData.plateNumber}</span>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-center">
-                <p className="text-slate-300 text-lg mb-6">Do you require accessible parking?</p>
+                <p className="text-slate-300 text-lg mb-6">Do you require disability parking?</p>
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
                 <Card className="bg-slate-900/50 border-slate-600 cursor-pointer hover:border-purple-500 transition-colors" onClick={() => handleDisabilityCheck(true)}>
                   <CardContent className="p-8 text-center">
                     <Accessibility className="h-12 w-12 text-purple-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">Yes, I need accessible parking</h3>
-                    <p className="text-slate-400">Reserve a disability-accessible spot</p>
+                    <h3 className="text-xl font-semibold text-white mb-2">Yes, I need disability parking</h3>
+                    <p className="text-slate-400">Reserve a disability parking spot</p>
                     <Button className="mt-4 bg-purple-600 hover:bg-purple-700 w-full">
                       <Scan className="mr-2 h-5 w-5" />
                       Scan Disability ID
@@ -197,7 +197,7 @@ const Entry = () => {
                     {vehicleData.assignedSpot}
                   </div>
                   <p className="text-slate-400">
-                    {vehicleData.isDisability ? 'Accessible Parking Spot' : 'Regular Parking Spot'}
+                    {vehicleData.isDisability ? 'Disability Parking Spot' : 'Regular Parking Spot'}
                   </p>
                 </div>
               </div>
@@ -208,8 +208,8 @@ const Entry = () => {
                 <div className="flex justify-center mb-4">
                   <div className="bg-white p-4 rounded-lg">
                     <img 
-                      src="https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=200&h=200&fit=crop&crop=center" 
-                      alt="PhonePe QR Code" 
+                      src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=200&h=200&fit=crop&crop=center" 
+                      alt="UPI QR Code" 
                       className="w-48 h-48 object-cover"
                     />
                   </div>

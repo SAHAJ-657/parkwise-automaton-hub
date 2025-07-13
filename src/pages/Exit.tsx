@@ -144,7 +144,7 @@ const Exit = () => {
                   <Button 
                     onClick={handleManualSearch}
                     disabled={!manualPlate}
-                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-600"
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-300"
                   >
                     Search
                   </Button>
