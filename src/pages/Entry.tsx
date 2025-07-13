@@ -26,6 +26,13 @@ const Entry = () => {
     setStep(2);
   };
 
+  const handleManualEntry = () => {
+    if (vehicleData.plateNumber) {
+      toast.success("Number plate entered successfully!");
+      setStep(2);
+    }
+  };
+
   const handleDisabilityCheck = (isDisabled: boolean) => {
     setVehicleData(prev => ({ ...prev, isDisability: isDisabled }));
     const spot = isDisabled ? `D-${Math.floor(Math.random() * 5) + 1}` : `A-${Math.floor(Math.random() * 50) + 1}`;
@@ -112,10 +119,9 @@ const Entry = () => {
                     onChange={(e) => setVehicleData(prev => ({ ...prev, plateNumber: e.target.value }))}
                   />
                   <Button 
-                    onClick={() => vehicleData.plateNumber && setStep(2)}
+                    onClick={handleManualEntry}
                     disabled={!vehicleData.plateNumber}
-                    variant="outline"
-                    className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-600"
                   >
                     Next
                   </Button>
@@ -196,6 +202,22 @@ const Entry = () => {
                 </div>
               </div>
 
+              {/* PhonePe QR Code */}
+              <div className="bg-slate-900/50 p-6 rounded-lg text-center">
+                <h3 className="text-lg font-semibold text-white mb-4">Scan to Pay</h3>
+                <div className="flex justify-center mb-4">
+                  <div className="bg-white p-4 rounded-lg">
+                    <img 
+                      src="https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=200&h=200&fit=crop&crop=center" 
+                      alt="PhonePe QR Code" 
+                      className="w-48 h-48 object-cover"
+                    />
+                  </div>
+                </div>
+                <p className="text-lg font-semibold text-purple-400 mb-2">Nashik-1</p>
+                <p className="text-slate-400 text-sm">Scan with any UPI app to pay</p>
+              </div>
+
               {/* Payment Details */}
               <div className="bg-slate-900/50 p-6 rounded-lg">
                 <h3 className="text-lg font-semibold text-white mb-4">Payment Details</h3>
@@ -217,7 +239,7 @@ const Entry = () => {
                 </div>
               </div>
 
-              {/* UPI Payment */}
+              {/* Payment Button */}
               <div className="text-center">
                 <Button 
                   onClick={handlePayment}
@@ -225,7 +247,7 @@ const Entry = () => {
                   size="lg"
                 >
                   <CreditCard className="mr-3 h-6 w-6" />
-                  Pay with UPI
+                  Complete Payment
                 </Button>
                 <p className="text-slate-400 text-sm mt-2">Supports all major UPI apps</p>
               </div>

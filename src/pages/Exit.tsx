@@ -11,6 +11,7 @@ import { toast } from "sonner";
 const Exit = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [manualPlate, setManualPlate] = useState("");
   const [exitData, setExitData] = useState({
     plateNumber: "",
     entryTime: "",
@@ -23,16 +24,15 @@ const Exit = () => {
   });
 
   const handlePlateCapture = () => {
-    // Simulate plate capture and lookup
-    const simulatedPlate = "MH12AB1234";
-    const entryTime = new Date(Date.now() - (5 * 60 * 60 * 1000)); // 5 hours ago
+    const plateToUse = manualPlate || "MH12AB1234";
+    const entryTime = new Date(Date.now() - (5 * 60 * 60 * 1000));
     const exitTime = new Date();
     const duration = Math.round((exitTime.getTime() - entryTime.getTime()) / (1000 * 60 * 60 * 100)) / 10;
     const overtimeFee = duration > 4 ? Math.round((duration - 4) * 20) : 0;
     const totalAmount = exitData.baseAmount + overtimeFee;
 
     setExitData({
-      plateNumber: simulatedPlate,
+      plateNumber: plateToUse,
       entryTime: entryTime.toLocaleString(),
       exitTime: exitTime.toLocaleString(),
       duration,
@@ -44,6 +44,12 @@ const Exit = () => {
 
     toast.success("Vehicle found in system!");
     setStep(2);
+  };
+
+  const handleManualSearch = () => {
+    if (manualPlate) {
+      handlePlateCapture();
+    }
   };
 
   const handlePayment = () => {
@@ -132,11 +138,13 @@ const Exit = () => {
                     id="manual-plate"
                     placeholder="Enter number plate to search"
                     className="bg-slate-900 border-slate-600 text-white"
+                    value={manualPlate}
+                    onChange={(e) => setManualPlate(e.target.value)}
                   />
                   <Button 
-                    onClick={handlePlateCapture}
-                    variant="outline"
-                    className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                    onClick={handleManualSearch}
+                    disabled={!manualPlate}
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-600"
                   >
                     Search
                   </Button>
