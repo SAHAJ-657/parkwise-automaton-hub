@@ -22,9 +22,9 @@ const Entry = () => {
   const getAvailableSpots = () => {
     const savedSpots = localStorage.getItem('parkingSpots');
     const spots = savedSpots ? JSON.parse(savedSpots) : [
-      { id: 'A-1', name: 'A-1', type: 'regular' },
-      { id: 'A-2', name: 'A-2', type: 'regular' },
-      { id: 'D-1', name: 'D-1', type: 'disability' },
+      { id: 'A-1', name: 'A-1', type: 'regular', occupied: false },
+      { id: 'A-2', name: 'A-2', type: 'regular', occupied: false },
+      { id: 'D-1', name: 'D-1', type: 'disability', occupied: false },
     ];
     return spots;
   };
@@ -47,7 +47,7 @@ const Entry = () => {
   const handleDisabilityCheck = (isDisabled: boolean) => {
     const availableSpots = getAvailableSpots();
     const filteredSpots = availableSpots.filter(spot => 
-      isDisabled ? spot.type === 'disability' : spot.type === 'regular'
+      isDisabled ? spot.type === 'disability' && !spot.occupied : spot.type === 'regular' && !spot.occupied
     );
     
     if (filteredSpots.length > 0) {
@@ -58,12 +58,18 @@ const Entry = () => {
         assignedSpot: randomSpot.id
       }));
       
-      // Store the assignment for exit process
+      // Store the assignment for exit process and update spot occupancy
       localStorage.setItem('currentVehicle', JSON.stringify({
         plateNumber: vehicleData.plateNumber,
         spot: randomSpot.id,
-        entryTime: new Date().getTime()
+        entryTime: Date.now()
       }));
+
+      // Update spots occupancy
+      const updatedSpots = availableSpots.map(spot => 
+        spot.id === randomSpot.id ? { ...spot, occupied: true } : spot
+      );
+      localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
       
       setStep(3);
     } else {
@@ -152,7 +158,8 @@ const Entry = () => {
                   <Button 
                     onClick={handleManualEntry}
                     disabled={!vehicleData.plateNumber}
-                    className="bg-slate-700 hover:bg-slate-600 text-slate-300"
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-600"
+                    variant="outline"
                   >
                     Next
                   </Button>
@@ -169,21 +176,21 @@ const Entry = () => {
               <div className="mx-auto mb-4 p-6 bg-purple-600/20 rounded-full w-fit">
                 <Accessibility className="h-16 w-16 text-purple-500" />
               </div>
-              <CardTitle className="text-2xl text-white">Disability Check</CardTitle>
+              <CardTitle className="text-2xl text-white">Parking Type Selection</CardTitle>
               <CardDescription className="text-slate-400">
                 Detected: <span className="text-white font-mono">{vehicleData.plateNumber}</span>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-center">
-                <p className="text-slate-300 text-lg mb-6">Do you require disability parking?</p>
+                <p className="text-slate-300 text-lg mb-6">Select your parking type:</p>
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
                 <Card className="bg-slate-900/50 border-slate-600 cursor-pointer hover:border-purple-500 transition-colors" onClick={() => handleDisabilityCheck(true)}>
                   <CardContent className="p-8 text-center">
                     <Accessibility className="h-12 w-12 text-purple-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">Yes, I need disability parking</h3>
+                    <h3 className="text-xl font-semibold text-white mb-2">Disability Parking</h3>
                     <p className="text-slate-400">Reserve a disability parking spot</p>
                     <Button className="mt-4 bg-purple-600 hover:bg-purple-700 w-full">
                       <Scan className="mr-2 h-5 w-5" />
@@ -235,18 +242,18 @@ const Entry = () => {
 
               {/* UPI QR Code */}
               <div className="bg-slate-900/50 p-6 rounded-lg text-center">
-                <h3 className="text-lg font-semibold text-white mb-4">Scan to Pay</h3>
+                <h3 className="text-lg font-semibold text-white mb-4">Scan to Pay with UPI</h3>
                 <div className="flex justify-center mb-4">
                   <div className="bg-white p-4 rounded-lg">
                     <img 
-                      src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=200&h=200&fit=crop&crop=center" 
-                      alt="UPI QR Code" 
+                      src="https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=200&h=200&fit=crop&crop=center" 
+                      alt="UPI QR Code for Payment" 
                       className="w-48 h-48 object-cover"
                     />
                   </div>
                 </div>
                 <p className="text-lg font-semibold text-purple-400 mb-2">Nashik-1</p>
-                <p className="text-slate-400 text-sm">Scan with any UPI app to pay</p>
+                <p className="text-slate-400 text-sm">Scan with PhonePe, GooglePay, Paytm or any UPI app</p>
               </div>
 
               {/* Payment Details */}
@@ -278,7 +285,7 @@ const Entry = () => {
                   size="lg"
                 >
                   <CreditCard className="mr-3 h-6 w-6" />
-                  Complete Payment
+                  Complete Payment ₹{vehicleData.amount + Math.round(vehicleData.amount * 0.18)}
                 </Button>
                 <p className="text-slate-400 text-sm mt-2">Supports all major UPI apps</p>
               </div>

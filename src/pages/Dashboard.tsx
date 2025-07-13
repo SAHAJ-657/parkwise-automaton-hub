@@ -8,17 +8,10 @@ import { useState, useEffect } from "react";
 const Dashboard = () => {
   const navigate = useNavigate();
   const [spots, setSpots] = useState([
-    { id: 'A-1', name: 'A-1', type: 'regular' },
-    { id: 'A-2', name: 'A-2', type: 'regular' },
-    { id: 'D-1', name: 'D-1', type: 'disability' },
+    { id: 'A-1', name: 'A-1', type: 'regular', occupied: false },
+    { id: 'A-2', name: 'A-2', type: 'regular', occupied: false },
+    { id: 'D-1', name: 'D-1', type: 'disability', occupied: false },
   ]);
-
-  // Get real stats from spots data
-  const totalSpots = spots.length;
-  const regularSpots = spots.filter(s => s.type === 'regular').length;
-  const disabilitySpots = spots.filter(s => s.type === 'disability').length;
-  const occupiedSpots = 0; // No vehicles currently parked
-  const availableSpots = totalSpots - occupiedSpots;
 
   // Load spots from localStorage if available
   useEffect(() => {
@@ -27,6 +20,28 @@ const Dashboard = () => {
       setSpots(JSON.parse(savedSpots));
     }
   }, []);
+
+  // Get current vehicle data to update spot occupancy
+  useEffect(() => {
+    const currentVehicle = localStorage.getItem('currentVehicle');
+    if (currentVehicle) {
+      const vehicleData = JSON.parse(currentVehicle);
+      setSpots(prevSpots => 
+        prevSpots.map(spot => 
+          spot.id === vehicleData.spot 
+            ? { ...spot, occupied: true }
+            : spot
+        )
+      );
+    }
+  }, []);
+
+  // Get real stats from spots data
+  const totalSpots = spots.length;
+  const regularSpots = spots.filter(s => s.type === 'regular').length;
+  const disabilitySpots = spots.filter(s => s.type === 'disability').length;
+  const occupiedSpots = spots.filter(s => s.occupied).length;
+  const availableSpots = totalSpots - occupiedSpots;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
@@ -40,47 +55,47 @@ const Dashboard = () => {
         {/* Main Actions */}
         <div className="grid md:grid-cols-2 gap-8 mb-12">
           <Card 
-            className="bg-gradient-to-br from-green-600/20 to-green-700/30 border-green-600/50 cursor-pointer hover:scale-105 transition-transform"
+            className="bg-slate-800/50 border-slate-700 cursor-pointer hover:scale-105 transition-transform"
             onClick={() => navigate('/entry')}
           >
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-6 bg-green-600/30 rounded-full w-fit">
+              <div className="mx-auto mb-4 p-6 bg-slate-700/50 rounded-full w-fit">
                 <Car className="h-16 w-16 text-slate-400" />
               </div>
               <CardTitle className="text-2xl text-white">Vehicle Entry</CardTitle>
-              <CardDescription className="text-green-200">
+              <CardDescription className="text-slate-300">
                 Start the parking process for new vehicles
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button className="bg-green-600 hover:bg-green-700 text-white py-3 px-8 text-lg">
+              <Button className="bg-slate-700 hover:bg-slate-600 text-white py-3 px-8 text-lg">
                 Start Entry Process
               </Button>
             </CardContent>
           </Card>
 
           <Card 
-            className="bg-gradient-to-br from-red-600/20 to-red-700/30 border-red-600/50 cursor-pointer hover:scale-105 transition-transform"
+            className="bg-slate-800/50 border-slate-700 cursor-pointer hover:scale-105 transition-transform"
             onClick={() => navigate('/exit')}
           >
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-6 bg-red-600/30 rounded-full w-fit">
+              <div className="mx-auto mb-4 p-6 bg-slate-700/50 rounded-full w-fit">
                 <LogOut className="h-16 w-16 text-slate-400" />
               </div>
               <CardTitle className="text-2xl text-white">Vehicle Exit</CardTitle>
-              <CardDescription className="text-red-200">
+              <CardDescription className="text-slate-300">
                 Process vehicle exit and payment
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <Button className="bg-red-600 hover:bg-red-700 text-white py-3 px-8 text-lg">
+              <Button className="bg-slate-700 hover:bg-slate-600 text-white py-3 px-8 text-lg">
                 Start Exit Process
               </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Quick Stats - Real Data Only */}
+        {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader className="pb-2">
@@ -130,7 +145,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-500">₹0</div>
-              <p className="text-slate-500 text-sm">from 0 vehicles</p>
+              <p className="text-slate-500 text-sm">from {occupiedSpots} vehicles</p>
             </CardContent>
           </Card>
         </div>

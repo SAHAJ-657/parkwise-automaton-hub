@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Lock, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Lock, Plus, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -13,9 +13,9 @@ const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [spots, setSpots] = useState([
-    { id: 'A-1', name: 'A-1', type: 'regular' },
-    { id: 'A-2', name: 'A-2', type: 'regular' },
-    { id: 'D-1', name: 'D-1', type: 'disability' },
+    { id: 'A-1', name: 'A-1', type: 'regular', occupied: false },
+    { id: 'A-2', name: 'A-2', type: 'regular', occupied: false },
+    { id: 'D-1', name: 'D-1', type: 'disability', occupied: false },
   ]);
   const [newSpot, setNewSpot] = useState({ id: '', name: '', type: 'regular' });
   const [isAddingSpot, setIsAddingSpot] = useState(false);
@@ -45,7 +45,7 @@ const Admin = () => {
 
   const handleAddSpot = () => {
     if (newSpot.id && newSpot.name) {
-      const spotToAdd = { ...newSpot, name: newSpot.id }; // Make name same as ID
+      const spotToAdd = { ...newSpot, name: newSpot.id, occupied: false };
       setSpots([...spots, spotToAdd]);
       setNewSpot({ id: '', name: '', type: 'regular' });
       setIsAddingSpot(false);
@@ -58,6 +58,14 @@ const Admin = () => {
   const handleDeleteSpot = (spotId: string) => {
     setSpots(spots.filter(spot => spot.id !== spotId));
     toast.success("Parking spot deleted successfully!");
+  };
+
+  const handleToggleOccupancy = (spotId: string) => {
+    setSpots(spots.map(spot => 
+      spot.id === spotId ? { ...spot, occupied: !spot.occupied } : spot
+    ));
+    const spot = spots.find(s => s.id === spotId);
+    toast.success(`Spot ${spotId} marked as ${spot?.occupied ? 'available' : 'occupied'}`);
   };
 
   if (!isAuthenticated) {
@@ -135,7 +143,7 @@ const Admin = () => {
           </Button>
         </div>
 
-        {/* Current Stats - Real Data Only */}
+        {/* Current Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
@@ -148,22 +156,22 @@ const Admin = () => {
 
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
-              <CardTitle className="text-slate-300 text-sm font-medium">Regular Spots</CardTitle>
+              <CardTitle className="text-slate-300 text-sm font-medium">Available Spots</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-500">
-                {spots.filter(s => s.type === 'regular').length}
+                {spots.filter(s => !s.occupied).length}
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
-              <CardTitle className="text-slate-300 text-sm font-medium">Disability Spots</CardTitle>
+              <CardTitle className="text-slate-300 text-sm font-medium">Occupied Spots</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-500">
-                {spots.filter(s => s.type === 'disability').length}
+              <div className="text-2xl font-bold text-red-500">
+                {spots.filter(s => s.occupied).length}
               </div>
             </CardContent>
           </Card>
@@ -176,7 +184,7 @@ const Admin = () => {
               <div>
                 <CardTitle className="text-white">Parking Spot Management</CardTitle>
                 <CardDescription className="text-slate-400">
-                  Add, edit, or remove parking spots
+                  Add, edit, or manage parking spots and their occupancy
                 </CardDescription>
               </div>
               <Button 
@@ -241,32 +249,69 @@ const Admin = () => {
               </Card>
             )}
 
-            {/* Spots List */}
-            <div className="space-y-4">
+            {/* Spots Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {spots.map((spot) => (
-                <div key={spot.id} className="flex items-center justify-between p-4 bg-slate-900/30 rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className={`px-3 py-1 rounded text-xs font-semibold ${
-                      spot.type === 'disability' 
-                        ? 'bg-purple-600/20 text-purple-400' 
-                        : 'bg-green-600/20 text-green-400'
-                    }`}>
-                      {spot.id}
+                <Card key={spot.id} className={`${
+                  spot.occupied 
+                    ? 'bg-red-900/30 border-red-600/50' 
+                    : 'bg-green-900/30 border-green-600/50'
+                }`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={`px-3 py-1 rounded text-xs font-semibold ${
+                        spot.type === 'disability' 
+                          ? 'bg-purple-600/20 text-purple-400' 
+                          : 'bg-blue-600/20 text-blue-400'
+                      }`}>
+                        {spot.id}
+                      </div>
+                      <div className={`w-4 h-4 rounded-full ${
+                        spot.occupied ? 'bg-red-500' : 'bg-green-500'
+                      }`} />
                     </div>
-                    <div>
+                    <div className="mb-3">
                       <div className="text-white font-semibold">{spot.name}</div>
                       <div className="text-slate-400 text-sm capitalize">{spot.type} Parking</div>
+                      <div className={`text-sm font-medium ${
+                        spot.occupied ? 'text-red-400' : 'text-green-400'
+                      }`}>
+                        {spot.occupied ? 'OCCUPIED' : 'AVAILABLE'}
+                      </div>
                     </div>
-                  </div>
-                  <Button 
-                    onClick={() => handleDeleteSpot(spot.id)}
-                    variant="outline"
-                    size="sm"
-                    className="border-red-600 text-red-400 hover:bg-red-600/20"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => handleToggleOccupancy(spot.id)}
+                        size="sm"
+                        className={`flex-1 ${
+                          spot.occupied 
+                            ? 'bg-green-600 hover:bg-green-700' 
+                            : 'bg-red-600 hover:bg-red-700'
+                        }`}
+                      >
+                        {spot.occupied ? (
+                          <>
+                            <ToggleRight className="h-4 w-4 mr-1" />
+                            Mark Available
+                          </>
+                        ) : (
+                          <>
+                            <ToggleLeft className="h-4 w-4 mr-1" />
+                            Mark Occupied
+                          </>
+                        )}
+                      </Button>
+                      <Button 
+                        onClick={() => handleDeleteSpot(spot.id)}
+                        variant="outline"
+                        size="sm"
+                        className="border-red-600 text-red-400 hover:bg-red-600/20"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </CardContent>

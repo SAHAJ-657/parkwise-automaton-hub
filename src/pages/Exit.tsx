@@ -26,7 +26,7 @@ const Exit = () => {
   const handlePlateCapture = () => {
     const plateToUse = manualPlate || "MH12AB1234";
     
-    // Get stored vehicle data or create simulation
+    // Get stored vehicle data
     const storedVehicle = localStorage.getItem('currentVehicle');
     let entryTime, spot;
     
@@ -35,23 +35,25 @@ const Exit = () => {
       entryTime = new Date(vehicleData.entryTime);
       spot = vehicleData.spot;
     } else {
-      // Fallback simulation
-      entryTime = new Date(Date.now() - (5 * 60 * 60 * 1000)); // 5 hours ago
-      spot = "A-1"; // Default spot
+      // No vehicle in system
+      toast.error("Vehicle not found in parking system!");
+      return;
     }
     
     const exitTime = new Date();
     const durationMs = exitTime.getTime() - entryTime.getTime();
     const durationHours = Math.round((durationMs / (1000 * 60 * 60)) * 10) / 10;
     const overtimeFee = durationHours > 4 ? Math.round((durationHours - 4) * 20) : 0;
-    const totalAmount = exitData.baseAmount + overtimeFee;
+    const baseAmount = 50;
+    const gst = Math.round(baseAmount * 0.18);
+    const totalAmount = baseAmount + gst + overtimeFee;
 
     setExitData({
       plateNumber: plateToUse,
       entryTime: entryTime.toLocaleString(),
       exitTime: exitTime.toLocaleString(),
       duration: durationHours,
-      baseAmount: 50,
+      baseAmount,
       overtimeFee,
       totalAmount,
       spot: spot
@@ -68,7 +70,16 @@ const Exit = () => {
   };
 
   const handlePayment = () => {
-    // Clear stored vehicle data
+    // Update spot occupancy and clear stored vehicle data
+    const savedSpots = localStorage.getItem('parkingSpots');
+    if (savedSpots) {
+      const spots = JSON.parse(savedSpots);
+      const updatedSpots = spots.map(spot => 
+        spot.id === exitData.spot ? { ...spot, occupied: false } : spot
+      );
+      localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
+    }
+    
     localStorage.removeItem('currentVehicle');
     toast.success("Payment successful! Thank you for using ParkWise!");
     setTimeout(() => {
@@ -78,7 +89,16 @@ const Exit = () => {
   };
 
   const handleFreeExit = () => {
-    // Clear stored vehicle data
+    // Update spot occupancy and clear stored vehicle data
+    const savedSpots = localStorage.getItem('parkingSpots');
+    if (savedSpots) {
+      const spots = JSON.parse(savedSpots);
+      const updatedSpots = spots.map(spot => 
+        spot.id === exitData.spot ? { ...spot, occupied: false } : spot
+      );
+      localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
+    }
+    
     localStorage.removeItem('currentVehicle');
     toast.success("No overtime charges. Have a great day!");
     setTimeout(() => {
@@ -163,7 +183,8 @@ const Exit = () => {
                   <Button 
                     onClick={handleManualSearch}
                     disabled={!manualPlate}
-                    className="bg-slate-700 hover:bg-slate-600 text-slate-300"
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-600"
+                    variant="outline"
                   >
                     Search
                   </Button>
@@ -212,6 +233,10 @@ const Exit = () => {
                       <span className="text-slate-400">Base Amount:</span>
                       <span className="text-white">₹{exitData.baseAmount}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">GST (18%):</span>
+                      <span className="text-white">₹{Math.round(exitData.baseAmount * 0.18)}</span>
+                    </div>
                     {exitData.overtimeFee > 0 && (
                       <div className="flex justify-between">
                         <span className="text-orange-400 flex items-center gap-1">
@@ -244,7 +269,7 @@ const Exit = () => {
                 <CardDescription className="text-slate-400">
                   {exitData.overtimeFee > 0 
                     ? 'Overtime charges apply for extended parking'
-                    : 'No additional charges. You can exit now.'
+                    : 'Standard charges apply. You can exit now.'
                   }
                 </CardDescription>
               </CardHeader>
@@ -253,17 +278,18 @@ const Exit = () => {
                 <div className="bg-slate-900/50 p-6 rounded-lg text-center">
                   <h3 className="text-lg text-slate-400 mb-2">Total Amount</h3>
                   <div className={`text-4xl font-bold mb-4 ${
-                    exitData.overtimeFee > 0 ? 'text-orange-500' : 'text-green-500'
+                    exitData.overtimeFee > 0 ? 'text-orange-500' : 'text-blue-500'
                   }`}>
                     ₹{exitData.totalAmount}
                   </div>
                   
-                  {exitData.overtimeFee > 0 && (
-                    <div className="text-sm text-slate-400 space-y-1">
-                      <div>Base Rate (4 hours): ₹{exitData.baseAmount}</div>
+                  <div className="text-sm text-slate-400 space-y-1">
+                    <div>Base Rate (4 hours): ₹{exitData.baseAmount}</div>
+                    <div>GST (18%): ₹{Math.round(exitData.baseAmount * 0.18)}</div>
+                    {exitData.overtimeFee > 0 && (
                       <div>Overtime ({(exitData.duration - 4).toFixed(1)} hours @ ₹20/hr): ₹{exitData.overtimeFee}</div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 {/* Action Button */}
@@ -279,12 +305,12 @@ const Exit = () => {
                     </Button>
                   ) : (
                     <Button 
-                      onClick={handleFreeExit}
-                      className="bg-green-600 hover:bg-green-700 text-white py-6 px-12 text-xl"
+                      onClick={handlePayment}
+                      className="bg-blue-600 hover:bg-blue-700 text-white py-6 px-12 text-xl"
                       size="lg"
                     >
                       <CheckCircle className="mr-3 h-6 w-6" />
-                      Complete Exit
+                      Pay ₹{exitData.totalAmount} & Exit
                     </Button>
                   )}
                 </div>
