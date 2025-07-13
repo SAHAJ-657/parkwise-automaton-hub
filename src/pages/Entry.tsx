@@ -18,6 +18,17 @@ const Entry = () => {
     amount: 50
   });
 
+  // Get available spots from localStorage
+  const getAvailableSpots = () => {
+    const savedSpots = localStorage.getItem('parkingSpots');
+    const spots = savedSpots ? JSON.parse(savedSpots) : [
+      { id: 'A-1', name: 'A-1', type: 'regular' },
+      { id: 'A-2', name: 'A-2', type: 'regular' },
+      { id: 'D-1', name: 'D-1', type: 'disability' },
+    ];
+    return spots;
+  };
+
   const handlePlateCapture = () => {
     // Simulate plate capture
     const simulatedPlate = "MH12AB" + Math.floor(Math.random() * 9999);
@@ -34,10 +45,30 @@ const Entry = () => {
   };
 
   const handleDisabilityCheck = (isDisabled: boolean) => {
-    setVehicleData(prev => ({ ...prev, isDisability: isDisabled }));
-    const spot = isDisabled ? `D-${Math.floor(Math.random() * 5) + 1}` : `A-${Math.floor(Math.random() * 50) + 1}`;
-    setVehicleData(prev => ({ ...prev, assignedSpot: spot }));
-    setStep(3);
+    const availableSpots = getAvailableSpots();
+    const filteredSpots = availableSpots.filter(spot => 
+      isDisabled ? spot.type === 'disability' : spot.type === 'regular'
+    );
+    
+    if (filteredSpots.length > 0) {
+      const randomSpot = filteredSpots[Math.floor(Math.random() * filteredSpots.length)];
+      setVehicleData(prev => ({ 
+        ...prev, 
+        isDisability: isDisabled,
+        assignedSpot: randomSpot.id
+      }));
+      
+      // Store the assignment for exit process
+      localStorage.setItem('currentVehicle', JSON.stringify({
+        plateNumber: vehicleData.plateNumber,
+        spot: randomSpot.id,
+        entryTime: new Date().getTime()
+      }));
+      
+      setStep(3);
+    } else {
+      toast.error(`No ${isDisabled ? 'disability' : 'regular'} parking spots available!`);
+    }
   };
 
   const handlePayment = () => {
@@ -121,7 +152,7 @@ const Entry = () => {
                   <Button 
                     onClick={handleManualEntry}
                     disabled={!vehicleData.plateNumber}
-                    className="bg-slate-800 hover:bg-slate-700 text-slate-300"
+                    className="bg-slate-700 hover:bg-slate-600 text-slate-300"
                   >
                     Next
                   </Button>
@@ -202,13 +233,13 @@ const Entry = () => {
                 </div>
               </div>
 
-              {/* PhonePe QR Code */}
+              {/* UPI QR Code */}
               <div className="bg-slate-900/50 p-6 rounded-lg text-center">
                 <h3 className="text-lg font-semibold text-white mb-4">Scan to Pay</h3>
                 <div className="flex justify-center mb-4">
                   <div className="bg-white p-4 rounded-lg">
                     <img 
-                      src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=200&h=200&fit=crop&crop=center" 
+                      src="https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=200&h=200&fit=crop&crop=center" 
                       alt="UPI QR Code" 
                       className="w-48 h-48 object-cover"
                     />

@@ -45,7 +45,7 @@ const Dashboard = () => {
           >
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 p-6 bg-green-600/30 rounded-full w-fit">
-                <Car className="h-16 w-16 text-green-400" />
+                <Car className="h-16 w-16 text-slate-400" />
               </div>
               <CardTitle className="text-2xl text-white">Vehicle Entry</CardTitle>
               <CardDescription className="text-green-200">
@@ -65,7 +65,7 @@ const Dashboard = () => {
           >
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 p-6 bg-red-600/30 rounded-full w-fit">
-                <LogOut className="h-16 w-16 text-red-400" />
+                <LogOut className="h-16 w-16 text-slate-400" />
               </div>
               <CardTitle className="text-2xl text-white">Vehicle Exit</CardTitle>
               <CardDescription className="text-red-200">
@@ -143,7 +143,7 @@ const Dashboard = () => {
               <Button 
                 onClick={() => navigate('/admin')}
                 variant="outline"
-                className="border-slate-600 text-slate-300 hover:bg-slate-800 py-2 px-6"
+                className="border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 py-2 px-6"
               >
                 <Settings className="h-5 w-5 mr-2" />
                 Admin Panel

@@ -25,21 +25,36 @@ const Exit = () => {
 
   const handlePlateCapture = () => {
     const plateToUse = manualPlate || "MH12AB1234";
-    const entryTime = new Date(Date.now() - (5 * 60 * 60 * 1000));
+    
+    // Get stored vehicle data or create simulation
+    const storedVehicle = localStorage.getItem('currentVehicle');
+    let entryTime, spot;
+    
+    if (storedVehicle) {
+      const vehicleData = JSON.parse(storedVehicle);
+      entryTime = new Date(vehicleData.entryTime);
+      spot = vehicleData.spot;
+    } else {
+      // Fallback simulation
+      entryTime = new Date(Date.now() - (5 * 60 * 60 * 1000)); // 5 hours ago
+      spot = "A-1"; // Default spot
+    }
+    
     const exitTime = new Date();
-    const duration = Math.round((exitTime.getTime() - entryTime.getTime()) / (1000 * 60 * 60 * 100)) / 10;
-    const overtimeFee = duration > 4 ? Math.round((duration - 4) * 20) : 0;
+    const durationMs = exitTime.getTime() - entryTime.getTime();
+    const durationHours = Math.round((durationMs / (1000 * 60 * 60)) * 10) / 10;
+    const overtimeFee = durationHours > 4 ? Math.round((durationHours - 4) * 20) : 0;
     const totalAmount = exitData.baseAmount + overtimeFee;
 
     setExitData({
       plateNumber: plateToUse,
       entryTime: entryTime.toLocaleString(),
       exitTime: exitTime.toLocaleString(),
-      duration,
+      duration: durationHours,
       baseAmount: 50,
       overtimeFee,
       totalAmount,
-      spot: "A-23"
+      spot: spot
     });
 
     toast.success("Vehicle found in system!");
@@ -53,6 +68,8 @@ const Exit = () => {
   };
 
   const handlePayment = () => {
+    // Clear stored vehicle data
+    localStorage.removeItem('currentVehicle');
     toast.success("Payment successful! Thank you for using ParkWise!");
     setTimeout(() => {
       toast.success(`Spot ${exitData.spot} is now available`);
@@ -61,6 +78,8 @@ const Exit = () => {
   };
 
   const handleFreeExit = () => {
+    // Clear stored vehicle data
+    localStorage.removeItem('currentVehicle');
     toast.success("No overtime charges. Have a great day!");
     setTimeout(() => {
       toast.success(`Spot ${exitData.spot} is now available`);
@@ -144,7 +163,7 @@ const Exit = () => {
                   <Button 
                     onClick={handleManualSearch}
                     disabled={!manualPlate}
-                    className="bg-slate-800 hover:bg-slate-700 text-slate-300"
+                    className="bg-slate-700 hover:bg-slate-600 text-slate-300"
                   >
                     Search
                   </Button>
