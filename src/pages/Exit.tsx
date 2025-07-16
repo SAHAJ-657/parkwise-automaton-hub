@@ -35,8 +35,9 @@ const Exit = () => {
       entryTime = new Date(vehicleData.entryTime);
       spot = vehicleData.spot;
     } else {
-      // No vehicle in system
-      toast.error("Vehicle not found in parking system!");
+      // Vehicle not found - allow exit
+      toast.success("Vehicle not found - Exit granted!");
+      setTimeout(() => navigate('/'), 2000);
       return;
     }
     

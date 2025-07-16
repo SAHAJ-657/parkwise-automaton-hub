@@ -207,7 +207,7 @@ const Admin = () => {
 
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
-              <CardTitle className="text-slate-300 text-sm font-medium">Today's Revenue</CardTitle>
+              <CardTitle className="text-slate-300 text-sm font-medium">Total Revenue</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-500">₹{revenue}</div>

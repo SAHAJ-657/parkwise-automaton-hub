@@ -54,7 +54,8 @@ const Entry = () => {
     if (disabilityCode === "D102030") {
       toast.success("Disability parking approved!");
       setIsDisabilityParking(false);
-      setStep(2);
+      setDisabilityCode("");
+      handleDisabilityCheck(true);
     } else {
       toast.error("Invalid disability code!");
       setDisabilityCode("");
@@ -102,11 +103,20 @@ const Entry = () => {
       
       setStep(3);
     } else {
+      // Show bigger popup for no parking available
       toast.error(`No ${isDisabled ? 'disability' : 'regular'} parking spots available!`);
+      setTimeout(() => {
+        navigate('/');
+      }, 3000);
     }
   };
 
   const handlePayment = () => {
+    // Add revenue to total
+    const currentRevenue = parseInt(localStorage.getItem('totalRevenue') || '0');
+    const newRevenue = currentRevenue + 59;
+    localStorage.setItem('totalRevenue', newRevenue.toString());
+    
     toast.success("Payment successful! Welcome to ParkWise!");
     setTimeout(() => navigate('/'), 2000);
   };
@@ -215,7 +225,7 @@ const Entry = () => {
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
-                <Card className="bg-slate-900/50 border-slate-600 cursor-pointer hover:border-purple-500 transition-colors" onClick={() => handleDisabilityCheck(true)}>
+                <Card className="bg-slate-900/50 border-slate-600 cursor-pointer hover:border-purple-500 transition-colors" onClick={() => setIsDisabilityParking(true)}>
                   <CardContent className="p-8 text-center">
                     <Accessibility className="h-12 w-12 text-purple-500 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-white mb-2">Disability Parking</h3>

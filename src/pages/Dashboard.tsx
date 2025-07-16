@@ -22,13 +22,12 @@ const Dashboard = () => {
     }
   }, []);
 
-  // Calculate revenue based on occupied spots
+  // Load revenue from localStorage
   useEffect(() => {
-    const occupiedCount = spots.filter(s => s.occupied).length;
-    const baseRate = 50;
-    const gst = Math.round(baseRate * 0.18);
-    const totalPerVehicle = baseRate + gst;
-    setRevenue(occupiedCount * totalPerVehicle);
+    const savedRevenue = localStorage.getItem('totalRevenue');
+    if (savedRevenue) {
+      setRevenue(parseInt(savedRevenue));
+    }
   }, [spots]);
 
   // Get current vehicle data to update spot occupancy
@@ -148,12 +147,12 @@ const Dashboard = () => {
             <CardHeader className="pb-2">
               <CardTitle className="text-slate-300 text-sm font-medium flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
-                Today's Revenue
+                Total Revenue
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-purple-500">₹{revenue}</div>
-              <p className="text-slate-500 text-sm">from {occupiedSpots} vehicles</p>
+              <p className="text-slate-500 text-sm">total collected</p>
             </CardContent>
           </Card>
         </div>
