@@ -274,9 +274,9 @@ const Entry = () => {
                 <div className="flex justify-center mb-4">
                   <div className="bg-white p-4 rounded-lg">
                     <img 
-                      src={upiQrCode}
+                      src="/src/assets/upi-qr-code.png"
                       alt="UPI QR Code for Payment" 
-                      className="w-48 h-48 object-cover"
+                      className="w-48 h-48 object-contain"
                     />
                   </div>
                 </div>
