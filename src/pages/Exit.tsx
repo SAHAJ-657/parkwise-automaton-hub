@@ -77,6 +77,7 @@ const Exit = () => {
       localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
     }
     
+    // Revenue should NOT decrease when vehicle exits (already paid)
     localStorage.removeItem('currentVehicle');
     toast.success("Thank you for using ParkWise! Have a great day!");
     setTimeout(() => {

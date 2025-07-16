@@ -7,10 +7,14 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Camera, Scan, CreditCard, MapPin, Accessibility } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import upiQrCode from "@/assets/upi-qr-code.png";
 
 const Entry = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const [showDisabilityPrompt, setShowDisabilityPrompt] = useState(false);
+  const [disabilityCode, setDisabilityCode] = useState("");
+  const [isDisabilityParking, setIsDisabilityParking] = useState(false);
   const [vehicleData, setVehicleData] = useState({
     plateNumber: "",
     isDisability: false,
@@ -34,6 +38,30 @@ const Entry = () => {
     const simulatedPlate = "MH12AB" + Math.floor(Math.random() * 9999);
     setVehicleData(prev => ({ ...prev, plateNumber: simulatedPlate }));
     toast.success("Number plate captured successfully!");
+    setShowDisabilityPrompt(true);
+  };
+
+  const handleDisabilityResponse = (needsDisability: boolean) => {
+    setShowDisabilityPrompt(false);
+    if (needsDisability) {
+      setIsDisabilityParking(true);
+    } else {
+      setStep(2);
+    }
+  };
+
+  const handleDisabilityCodeSubmit = () => {
+    if (disabilityCode === "D102030") {
+      toast.success("Disability parking approved!");
+      setIsDisabilityParking(false);
+      setStep(2);
+    } else {
+      toast.error("Invalid disability code!");
+      setDisabilityCode("");
+    }
+  };
+
+  const proceedWithSpotAssignment = () => {
     setStep(2);
   };
 
@@ -246,7 +274,7 @@ const Entry = () => {
                 <div className="flex justify-center mb-4">
                   <div className="bg-white p-4 rounded-lg">
                     <img 
-                      src="https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=200&h=200&fit=crop&crop=center" 
+                      src={upiQrCode}
                       alt="UPI QR Code for Payment" 
                       className="w-48 h-48 object-cover"
                     />
@@ -291,6 +319,88 @@ const Entry = () => {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Disability Parking Prompt */}
+        {showDisabilityPrompt && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="bg-slate-800/90 border-slate-700 max-w-md mx-4">
+              <CardHeader className="text-center">
+                <CardTitle className="text-xl text-white">Disability Parking</CardTitle>
+                <CardDescription className="text-slate-400">
+                  Do you need disability parking assistance?
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-4">
+                  <Button 
+                    onClick={() => handleDisabilityResponse(true)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Yes
+                  </Button>
+                  <Button 
+                    onClick={() => handleDisabilityResponse(false)}
+                    className="flex-1 bg-slate-600 hover:bg-slate-700 text-white"
+                  >
+                    No
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Disability Code Input */}
+        {isDisabilityParking && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="bg-slate-800/90 border-slate-700 max-w-md mx-4">
+              <CardHeader className="text-center">
+                <CardTitle className="text-xl text-white">Disability Verification</CardTitle>
+                <CardDescription className="text-slate-400">
+                  Please scan your disability card or enter the code manually
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-slate-900/50 p-8 rounded-lg border-2 border-dashed border-slate-600 text-center">
+                  <Camera className="h-16 w-16 text-slate-500 mx-auto mb-4" />
+                  <p className="text-slate-400">Card scanner ready</p>
+                </div>
+                
+                <div className="border-t border-slate-600 pt-4">
+                  <Label htmlFor="disability-code" className="text-slate-300">Manual Entry</Label>
+                  <div className="flex gap-2 mt-2">
+                    <Input 
+                      id="disability-code"
+                      placeholder="Enter disability code: D102030"
+                      className="bg-slate-900 border-slate-600 text-white"
+                      value={disabilityCode}
+                      onChange={(e) => setDisabilityCode(e.target.value)}
+                    />
+                    <Button 
+                      onClick={handleDisabilityCodeSubmit}
+                      disabled={!disabilityCode}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Verify
+                    </Button>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={() => {
+                    setIsDisabilityParking(false);
+                    setDisabilityCode("");
+                    setStep(2);
+                  }}
+                  variant="outline"
+                  className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                >
+                  Skip Disability Parking
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
     </div>

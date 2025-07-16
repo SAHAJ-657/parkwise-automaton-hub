@@ -29,14 +29,13 @@ const Admin = () => {
     }
   }, []);
 
-  // Calculate revenue based on occupied spots
+  // Load revenue from localStorage on component mount
   useEffect(() => {
-    const occupiedCount = spots.filter(s => s.occupied).length;
-    const baseRate = 50;
-    const gst = Math.round(baseRate * 0.18);
-    const totalPerVehicle = baseRate + gst;
-    setRevenue(occupiedCount * totalPerVehicle);
-  }, [spots]);
+    const savedRevenue = localStorage.getItem('totalRevenue');
+    if (savedRevenue) {
+      setRevenue(parseInt(savedRevenue));
+    }
+  }, []);
 
   // Save spots to localStorage whenever spots change
   useEffect(() => {
@@ -76,11 +75,26 @@ const Admin = () => {
   };
 
   const handleToggleOccupancy = (spotId: string) => {
-    setSpots(spots.map(spot => 
-      spot.id === spotId ? { ...spot, occupied: !spot.occupied } : spot
-    ));
     const spot = spots.find(s => s.id === spotId);
-    toast.success(`Spot ${spotId} marked as ${spot?.occupied ? 'available' : 'occupied'}`);
+    if (!spot) return;
+    
+    const newOccupied = !spot.occupied;
+    
+    // Only add revenue when marking as occupied (car entering)
+    // Never subtract revenue when marking as available
+    if (newOccupied) {
+      const newRevenue = revenue + 59;
+      setRevenue(newRevenue);
+      localStorage.setItem('totalRevenue', newRevenue.toString());
+    }
+    
+    const updatedSpots = spots.map(s => 
+      s.id === spotId ? { ...s, occupied: newOccupied } : s
+    );
+    setSpots(updatedSpots);
+    localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
+    
+    toast.success(`Spot ${spotId} marked as ${newOccupied ? 'occupied' : 'available'}`);
   };
 
   if (!isAuthenticated) {
