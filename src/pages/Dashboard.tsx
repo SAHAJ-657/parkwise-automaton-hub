@@ -11,6 +11,7 @@ const Dashboard = () => {
     { id: 'A-1', name: 'A-1', type: 'regular', occupied: false },
     { id: 'A-2', name: 'A-2', type: 'regular', occupied: false },
     { id: 'D-1', name: 'D-1', type: 'disability', occupied: false },
+    { id: 'E-1', name: 'E-1', type: 'electric', occupied: false },
   ]);
   const [revenue, setRevenue] = useState(0);
 

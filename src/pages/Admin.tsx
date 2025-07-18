@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Lock, Plus, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import { ArrowLeft, Lock, Plus, Trash2, ToggleLeft, ToggleRight, Car } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -16,10 +16,14 @@ const Admin = () => {
     { id: 'A-1', name: 'A-1', type: 'regular', occupied: false },
     { id: 'A-2', name: 'A-2', type: 'regular', occupied: false },
     { id: 'D-1', name: 'D-1', type: 'disability', occupied: false },
+    { id: 'E-1', name: 'E-1', type: 'electric', occupied: false },
   ]);
   const [newSpot, setNewSpot] = useState({ id: '', name: '', type: 'regular' });
+  const [newVehicle, setNewVehicle] = useState({ plateNumber: '', cardNumber: '', spotId: '' });
+  const [isAddingVehicle, setIsAddingVehicle] = useState(false);
   const [isAddingSpot, setIsAddingSpot] = useState(false);
   const [revenue, setRevenue] = useState(0);
+  const [dailyRevenue, setDailyRevenue] = useState(0);
 
   // Load spots from localStorage on component mount
   useEffect(() => {
@@ -32,8 +36,12 @@ const Admin = () => {
   // Load revenue from localStorage on component mount
   useEffect(() => {
     const savedRevenue = localStorage.getItem('totalRevenue');
+    const savedDailyRevenue = localStorage.getItem('dailyRevenue');
     if (savedRevenue) {
       setRevenue(parseInt(savedRevenue));
+    }
+    if (savedDailyRevenue) {
+      setDailyRevenue(parseInt(savedDailyRevenue));
     }
   }, []);
 
@@ -83,9 +91,12 @@ const Admin = () => {
     // Only add revenue when marking as occupied (car entering)
     // Never subtract revenue when marking as available
     if (newOccupied) {
-      const newRevenue = revenue + 59;
-      setRevenue(newRevenue);
-      localStorage.setItem('totalRevenue', newRevenue.toString());
+      const newTotalRevenue = revenue + 59;
+      const newDailyRev = dailyRevenue + 59;
+      setRevenue(newTotalRevenue);
+      setDailyRevenue(newDailyRev);
+      localStorage.setItem('totalRevenue', newTotalRevenue.toString());
+      localStorage.setItem('dailyRevenue', newDailyRev.toString());
     }
     
     const updatedSpots = spots.map(s => 
@@ -95,6 +106,46 @@ const Admin = () => {
     localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
     
     toast.success(`Spot ${spotId} marked as ${newOccupied ? 'occupied' : 'available'}`);
+  };
+
+  const handleAddVehicle = () => {
+    if (newVehicle.plateNumber && newVehicle.cardNumber && newVehicle.spotId) {
+      const spot = spots.find(s => s.id === newVehicle.spotId && !s.occupied);
+      if (!spot) {
+        toast.error("Selected spot is not available!");
+        return;
+      }
+
+      // Mark spot as occupied
+      const updatedSpots = spots.map(s => 
+        s.id === newVehicle.spotId ? { ...s, occupied: true } : s
+      );
+      setSpots(updatedSpots);
+      localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
+
+      // Add revenue
+      const newTotalRevenue = revenue + 59;
+      const newDailyRev = dailyRevenue + 59;
+      setRevenue(newTotalRevenue);
+      setDailyRevenue(newDailyRev);
+      localStorage.setItem('totalRevenue', newTotalRevenue.toString());
+      localStorage.setItem('dailyRevenue', newDailyRev.toString());
+
+      // Store vehicle data
+      localStorage.setItem('currentVehicle', JSON.stringify({
+        plateNumber: newVehicle.plateNumber,
+        cardNumber: newVehicle.cardNumber,
+        spot: newVehicle.spotId,
+        entryTime: Date.now(),
+        amount: 59
+      }));
+
+      setNewVehicle({ plateNumber: '', cardNumber: '', spotId: '' });
+      setIsAddingVehicle(false);
+      toast.success("Vehicle added successfully!");
+    } else {
+      toast.error("Please fill in all fields");
+    }
   };
 
   if (!isAuthenticated) {
@@ -173,7 +224,7 @@ const Admin = () => {
         </div>
 
         {/* Current Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
               <CardTitle className="text-slate-300 text-sm font-medium">Total Spots</CardTitle>
@@ -207,6 +258,26 @@ const Admin = () => {
 
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
+              <CardTitle className="text-slate-300 text-sm font-medium">Cars Parked</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-500">
+                {spots.filter(s => s.occupied).length}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-slate-300 text-sm font-medium">Daily Revenue</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-500">₹{dailyRevenue}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader>
               <CardTitle className="text-slate-300 text-sm font-medium">Total Revenue</CardTitle>
             </CardHeader>
             <CardContent>
@@ -225,13 +296,22 @@ const Admin = () => {
                   Add, edit, or manage parking spots and their occupancy
                 </CardDescription>
               </div>
-              <Button 
-                onClick={() => setIsAddingSpot(true)}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Spot
-              </Button>
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => setIsAddingSpot(true)}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Spot
+                </Button>
+                <Button 
+                  onClick={() => setIsAddingVehicle(true)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Vehicle
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -261,6 +341,7 @@ const Admin = () => {
                       >
                         <option value="regular">Regular</option>
                         <option value="disability">Disability</option>
+                        <option value="electric">Electric</option>
                       </select>
                     </div>
                   </div>
@@ -287,6 +368,71 @@ const Admin = () => {
               </Card>
             )}
 
+            {/* Add New Vehicle Form */}
+            {isAddingVehicle && (
+              <Card className="mb-6 bg-slate-900/50 border-slate-600">
+                <CardHeader>
+                  <CardTitle className="text-white text-lg">Add New Vehicle</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-slate-300">Plate Number</Label>
+                      <Input
+                        placeholder="e.g., MH12AB1234"
+                        className="bg-slate-800 border-slate-600 text-white"
+                        value={newVehicle.plateNumber}
+                        onChange={(e) => setNewVehicle({...newVehicle, plateNumber: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-slate-300">Card Number</Label>
+                      <Input
+                        placeholder="Enter card number"
+                        className="bg-slate-800 border-slate-600 text-white"
+                        value={newVehicle.cardNumber}
+                        onChange={(e) => setNewVehicle({...newVehicle, cardNumber: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-slate-300">Assign to Spot</Label>
+                      <select
+                        className="w-full p-2 bg-slate-800 border border-slate-600 text-white rounded-md"
+                        value={newVehicle.spotId}
+                        onChange={(e) => setNewVehicle({...newVehicle, spotId: e.target.value})}
+                      >
+                        <option value="">Select available spot</option>
+                        {spots.filter(s => !s.occupied).map(spot => (
+                          <option key={spot.id} value={spot.id}>
+                            {spot.id} ({spot.type})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <Button 
+                      onClick={handleAddVehicle}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Car className="h-4 w-4 mr-2" />
+                      Add Vehicle
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setIsAddingVehicle(false);
+                        setNewVehicle({ plateNumber: '', cardNumber: '', spotId: '' });
+                      }}
+                      variant="outline"
+                      className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Spots Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {spots.map((spot) => (
@@ -300,6 +446,8 @@ const Admin = () => {
                       <div className={`px-3 py-1 rounded text-xs font-semibold ${
                         spot.type === 'disability' 
                           ? 'bg-purple-600/20 text-purple-400' 
+                          : spot.type === 'electric'
+                          ? 'bg-yellow-600/20 text-yellow-400'
                           : 'bg-blue-600/20 text-blue-400'
                       }`}>
                         {spot.id}

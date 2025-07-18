@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Camera, Scan, CreditCard, MapPin, Accessibility } from "lucide-react";
+import { ArrowLeft, Camera, Scan, CreditCard, MapPin, Accessibility, Car } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import upiQrCode from "@/assets/upi-qr-code.png";
@@ -18,6 +18,7 @@ const Entry = () => {
   const [vehicleData, setVehicleData] = useState({
     plateNumber: "",
     isDisability: false,
+    isElectric: false,
     assignedSpot: "",
     amount: 50
   });
@@ -73,17 +74,26 @@ const Entry = () => {
     }
   };
 
-  const handleDisabilityCheck = (isDisabled: boolean) => {
+  const handleDisabilityCheck = (isDisabled: boolean, isElectric: boolean = false) => {
     const availableSpots = getAvailableSpots();
-    const filteredSpots = availableSpots.filter(spot => 
-      isDisabled ? spot.type === 'disability' && !spot.occupied : spot.type === 'regular' && !spot.occupied
-    );
+    let filteredSpots;
+    
+    if (isElectric) {
+      filteredSpots = availableSpots.filter(spot => 
+        spot.type === 'electric' && !spot.occupied
+      );
+    } else {
+      filteredSpots = availableSpots.filter(spot => 
+        isDisabled ? spot.type === 'disability' && !spot.occupied : spot.type === 'regular' && !spot.occupied
+      );
+    }
     
     if (filteredSpots.length > 0) {
       const randomSpot = filteredSpots[Math.floor(Math.random() * filteredSpots.length)];
       setVehicleData(prev => ({ 
         ...prev, 
         isDisability: isDisabled,
+        isElectric: isElectric,
         assignedSpot: randomSpot.id
       }));
       
@@ -104,7 +114,8 @@ const Entry = () => {
       setStep(3);
     } else {
       // Show bigger popup for no parking available
-      toast.error(`No ${isDisabled ? 'disability' : 'regular'} parking spots available!`);
+      const spotType = isElectric ? 'electric' : (isDisabled ? 'disability' : 'regular');
+      toast.error(`No ${spotType} parking spots available!`);
       setTimeout(() => {
         navigate('/');
       }, 3000);
@@ -221,29 +232,40 @@ const Entry = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-center">
-                <p className="text-slate-300 text-lg mb-6">Select your parking type:</p>
+                <p className="text-slate-300 text-lg mb-6">Select your vehicle and parking type:</p>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-3 gap-6">
                 <Card className="bg-slate-900/50 border-slate-600 cursor-pointer hover:border-purple-500 transition-colors" onClick={() => setIsDisabilityParking(true)}>
-                  <CardContent className="p-8 text-center">
-                    <Accessibility className="h-12 w-12 text-purple-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">Disability Parking</h3>
-                    <p className="text-slate-400">Reserve a disability parking spot</p>
-                    <Button className="mt-4 bg-purple-600 hover:bg-purple-700 w-full">
-                      <Scan className="mr-2 h-5 w-5" />
-                      Scan Disability ID
+                  <CardContent className="p-6 text-center">
+                    <Accessibility className="h-10 w-10 text-purple-500 mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-white mb-2">Disability Parking</h3>
+                    <p className="text-slate-400 text-sm">Reserve a disability parking spot</p>
+                    <Button className="mt-3 bg-purple-600 hover:bg-purple-700 w-full text-sm">
+                      <Scan className="mr-2 h-4 w-4" />
+                      Verify ID
                     </Button>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-900/50 border-slate-600 cursor-pointer hover:border-green-500 transition-colors" onClick={() => handleDisabilityCheck(false)}>
-                  <CardContent className="p-8 text-center">
-                    <MapPin className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">Regular parking</h3>
-                    <p className="text-slate-400">Assign any available parking spot</p>
-                    <Button className="mt-4 bg-green-600 hover:bg-green-700 w-full">
-                      Continue to Payment
+                <Card className="bg-slate-900/50 border-slate-600 cursor-pointer hover:border-blue-500 transition-colors" onClick={() => handleDisabilityCheck(false, true)}>
+                  <CardContent className="p-6 text-center">
+                    <Car className="h-10 w-10 text-blue-500 mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-white mb-2">Electric Vehicle</h3>
+                    <p className="text-slate-400 text-sm">Charging station parking</p>
+                    <Button className="mt-3 bg-blue-600 hover:bg-blue-700 w-full text-sm">
+                      Book Electric Spot
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-slate-900/50 border-slate-600 cursor-pointer hover:border-green-500 transition-colors" onClick={() => handleDisabilityCheck(false, false)}>
+                  <CardContent className="p-6 text-center">
+                    <MapPin className="h-10 w-10 text-green-500 mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-white mb-2">Regular Parking</h3>
+                    <p className="text-slate-400 text-sm">Standard parking spot</p>
+                    <Button className="mt-3 bg-green-600 hover:bg-green-700 w-full text-sm">
+                      Continue
                     </Button>
                   </CardContent>
                 </Card>
@@ -273,7 +295,7 @@ const Entry = () => {
                     {vehicleData.assignedSpot}
                   </div>
                   <p className="text-slate-400">
-                    {vehicleData.isDisability ? 'Disability Parking Spot' : 'Regular Parking Spot'}
+                    {vehicleData.isElectric ? 'Electric Vehicle Spot' : vehicleData.isDisability ? 'Disability Parking Spot' : 'Regular Parking Spot'}
                   </p>
                 </div>
               </div>
@@ -382,7 +404,8 @@ const Entry = () => {
                   <div className="flex gap-2 mt-2">
                     <Input 
                       id="disability-code"
-                      placeholder="Enter disability code: D102030"
+                      type="password"
+                      placeholder="Enter disability verification code"
                       className="bg-slate-900 border-slate-600 text-white"
                       value={disabilityCode}
                       onChange={(e) => setDisabilityCode(e.target.value)}
