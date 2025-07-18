@@ -147,13 +147,13 @@ const Dashboard = () => {
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader className="pb-2">
               <CardTitle className="text-slate-300 text-sm font-medium flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Total Revenue
+                <Users className="h-4 w-4" />
+                Active Sessions
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-500">₹{revenue}</div>
-              <p className="text-slate-500 text-sm">total collected</p>
+              <div className="text-2xl font-bold text-purple-500">{occupiedSpots}</div>
+              <p className="text-slate-500 text-sm">current vehicles</p>
             </CardContent>
           </Card>
         </div>

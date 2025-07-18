@@ -19,7 +19,7 @@ const Admin = () => {
     { id: 'E-1', name: 'E-1', type: 'electric', occupied: false },
   ]);
   const [newSpot, setNewSpot] = useState({ id: '', name: '', type: 'regular' });
-  const [newVehicle, setNewVehicle] = useState({ plateNumber: '', cardNumber: '', spotId: '' });
+  const [newVehicle, setNewVehicle] = useState({ plateNumber: '', adminPassword: '', spotId: '' });
   const [isAddingVehicle, setIsAddingVehicle] = useState(false);
   const [isAddingSpot, setIsAddingSpot] = useState(false);
   const [revenue, setRevenue] = useState(0);
@@ -91,8 +91,8 @@ const Admin = () => {
     // Only add revenue when marking as occupied (car entering)
     // Never subtract revenue when marking as available
     if (newOccupied) {
-      const newTotalRevenue = revenue + 59;
-      const newDailyRev = dailyRevenue + 59;
+      const newTotalRevenue = revenue + 47;
+      const newDailyRev = dailyRevenue + 47;
       setRevenue(newTotalRevenue);
       setDailyRevenue(newDailyRev);
       localStorage.setItem('totalRevenue', newTotalRevenue.toString());
@@ -109,7 +109,11 @@ const Admin = () => {
   };
 
   const handleAddVehicle = () => {
-    if (newVehicle.plateNumber && newVehicle.cardNumber && newVehicle.spotId) {
+    if (newVehicle.plateNumber && newVehicle.adminPassword && newVehicle.spotId) {
+      if (newVehicle.adminPassword !== "987321") {
+        toast.error("Invalid admin password!");
+        return;
+      }
       const spot = spots.find(s => s.id === newVehicle.spotId && !s.occupied);
       if (!spot) {
         toast.error("Selected spot is not available!");
@@ -124,8 +128,8 @@ const Admin = () => {
       localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
 
       // Add revenue
-      const newTotalRevenue = revenue + 59;
-      const newDailyRev = dailyRevenue + 59;
+      const newTotalRevenue = revenue + 47;
+      const newDailyRev = dailyRevenue + 47;
       setRevenue(newTotalRevenue);
       setDailyRevenue(newDailyRev);
       localStorage.setItem('totalRevenue', newTotalRevenue.toString());
@@ -134,13 +138,12 @@ const Admin = () => {
       // Store vehicle data
       localStorage.setItem('currentVehicle', JSON.stringify({
         plateNumber: newVehicle.plateNumber,
-        cardNumber: newVehicle.cardNumber,
         spot: newVehicle.spotId,
         entryTime: Date.now(),
-        amount: 59
+        amount: 47 // Updated base rate
       }));
 
-      setNewVehicle({ plateNumber: '', cardNumber: '', spotId: '' });
+      setNewVehicle({ plateNumber: '', adminPassword: '', spotId: '' });
       setIsAddingVehicle(false);
       toast.success("Vehicle added successfully!");
     } else {
@@ -385,15 +388,16 @@ const Admin = () => {
                         onChange={(e) => setNewVehicle({...newVehicle, plateNumber: e.target.value})}
                       />
                     </div>
-                    <div>
-                      <Label className="text-slate-300">Card Number</Label>
-                      <Input
-                        placeholder="Enter card number"
-                        className="bg-slate-800 border-slate-600 text-white"
-                        value={newVehicle.cardNumber}
-                        onChange={(e) => setNewVehicle({...newVehicle, cardNumber: e.target.value})}
-                      />
-                    </div>
+                     <div>
+                       <Label className="text-slate-300">Admin Password</Label>
+                       <Input
+                         type="password"
+                         placeholder="Enter admin password"
+                         className="bg-slate-800 border-slate-600 text-white"
+                         value={newVehicle.adminPassword}
+                         onChange={(e) => setNewVehicle({...newVehicle, adminPassword: e.target.value})}
+                       />
+                     </div>
                     <div>
                       <Label className="text-slate-300">Assign to Spot</Label>
                       <select
@@ -401,12 +405,14 @@ const Admin = () => {
                         value={newVehicle.spotId}
                         onChange={(e) => setNewVehicle({...newVehicle, spotId: e.target.value})}
                       >
-                        <option value="">Select available spot</option>
-                        {spots.filter(s => !s.occupied).map(spot => (
-                          <option key={spot.id} value={spot.id}>
-                            {spot.id} ({spot.type})
-                          </option>
-                        ))}
+                         <option value="">Select available spot</option>
+                         {spots.filter(s => !s.occupied)
+                           .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
+                           .map(spot => (
+                           <option key={spot.id} value={spot.id}>
+                             {spot.id} ({spot.type})
+                           </option>
+                         ))}
                       </select>
                     </div>
                   </div>
@@ -421,7 +427,7 @@ const Admin = () => {
                     <Button 
                       onClick={() => {
                         setIsAddingVehicle(false);
-                        setNewVehicle({ plateNumber: '', cardNumber: '', spotId: '' });
+                        setNewVehicle({ plateNumber: '', adminPassword: '', spotId: '' });
                       }}
                       variant="outline"
                       className="border-slate-600 text-slate-300 hover:bg-slate-800"
@@ -469,37 +475,17 @@ const Admin = () => {
                         {spot.occupied ? 'OCCUPIED' : 'AVAILABLE'}
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={() => handleToggleOccupancy(spot.id)}
-                        size="sm"
-                        className={`flex-1 ${
-                          spot.occupied 
-                            ? 'bg-green-600 hover:bg-green-700' 
-                            : 'bg-red-600 hover:bg-red-700'
-                        }`}
-                      >
-                        {spot.occupied ? (
-                          <>
-                            <ToggleRight className="h-4 w-4 mr-1" />
-                            Mark Available
-                          </>
-                        ) : (
-                          <>
-                            <ToggleLeft className="h-4 w-4 mr-1" />
-                            Mark Occupied
-                          </>
-                        )}
-                      </Button>
-                      <Button 
-                        onClick={() => handleDeleteSpot(spot.id)}
-                        variant="outline"
-                        size="sm"
-                        className="border-red-600 text-red-400 hover:bg-red-600/20"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                     <div className="flex gap-2">
+                       <Button 
+                         onClick={() => handleDeleteSpot(spot.id)}
+                         variant="outline"
+                         size="sm"
+                         className="border-red-600 text-red-400 hover:bg-red-600/20 w-full"
+                       >
+                         <Trash2 className="h-4 w-4 mr-1" />
+                         Delete Spot
+                       </Button>
+                     </div>
                   </CardContent>
                 </Card>
               ))}

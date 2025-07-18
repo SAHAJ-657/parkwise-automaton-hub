@@ -24,6 +24,13 @@ const Exit = () => {
   });
 
   const handlePlateCapture = () => {
+    // Show camera not connected popup in bottom right
+    toast.error("Camera not connected - enter manually", {
+      position: "bottom-right"
+    });
+  };
+
+  const handleActualPlateCapture = () => {
     const plateToUse = manualPlate || "MH12AB1234";
     
     // Get stored vehicle data
@@ -44,14 +51,14 @@ const Exit = () => {
     const exitTime = new Date();
     const durationMs = exitTime.getTime() - entryTime.getTime();
     const durationHours = Math.max(0.1, Math.round((durationMs / (1000 * 60 * 60)) * 10) / 10);
-    const overtimeFee = durationHours > 4 ? Math.round((durationHours - 4) * 20) : 0;
+    const overtimeFee = durationHours > 4 ? Math.round((durationHours - 4) * 12) : 0;
 
     setExitData({
       plateNumber: plateToUse,
       entryTime: entryTime.toLocaleString(),
       exitTime: exitTime.toLocaleString(),
       duration: durationHours,
-      baseAmount: 50,
+      baseAmount: 40,
       overtimeFee,
       totalAmount: 0, // Customer already paid
       spot: spot
@@ -63,7 +70,7 @@ const Exit = () => {
 
   const handleManualSearch = () => {
     if (manualPlate) {
-      handlePlateCapture();
+      handleActualPlateCapture();
     }
   };
 
@@ -135,7 +142,7 @@ const Exit = () => {
               <div className="bg-slate-900/50 p-8 rounded-lg border-2 border-dashed border-slate-600 text-center">
                 <Camera className="h-24 w-24 text-slate-500 mx-auto mb-4" />
                 <p className="text-slate-400 text-lg">Camera feed will appear here</p>
-                <p className="text-slate-500 text-sm mt-2">Webcam integration ready</p>
+                <p className="text-slate-500 text-sm mt-2">Camera not connected</p>
               </div>
               
               <div className="flex justify-center">

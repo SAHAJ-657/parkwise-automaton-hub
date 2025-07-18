@@ -20,7 +20,7 @@ const Entry = () => {
     isDisability: false,
     isElectric: false,
     assignedSpot: "",
-    amount: 50
+    amount: 40
   });
 
   // Get available spots from localStorage
@@ -35,11 +35,10 @@ const Entry = () => {
   };
 
   const handlePlateCapture = () => {
-    // Simulate plate capture
-    const simulatedPlate = "MH12AB" + Math.floor(Math.random() * 9999);
-    setVehicleData(prev => ({ ...prev, plateNumber: simulatedPlate }));
-    toast.success("Number plate captured successfully!");
-    setShowDisabilityPrompt(true);
+    // Show camera not connected popup in bottom right
+    toast.error("Camera not connected - enter manually", {
+      position: "bottom-right"
+    });
   };
 
   const handleDisabilityResponse = (needsDisability: boolean) => {
@@ -64,13 +63,35 @@ const Entry = () => {
   };
 
   const proceedWithSpotAssignment = () => {
+    // Check if any spots are available before starting entry process
+    const availableSpots = getAvailableSpots();
+    const totalAvailable = availableSpots.filter(spot => !spot.occupied).length;
+    
+    if (totalAvailable === 0) {
+      // Show large popup in middle of screen
+      toast.error("No parking spots available! Redirecting to dashboard...");
+      setTimeout(() => navigate('/'), 3000);
+      return;
+    }
+    
     setStep(2);
   };
 
   const handleManualEntry = () => {
     if (vehicleData.plateNumber) {
+      // Check if any spots are available before proceeding
+      const availableSpots = getAvailableSpots();
+      const totalAvailable = availableSpots.filter(spot => !spot.occupied).length;
+      
+      if (totalAvailable === 0) {
+        // Show large popup in middle of screen
+        toast.error("No parking spots available! Redirecting to dashboard...");
+        setTimeout(() => navigate('/'), 3000);
+        return;
+      }
+      
       toast.success("Number plate entered successfully!");
-      setStep(2);
+      setShowDisabilityPrompt(true);
     }
   };
 
@@ -102,7 +123,7 @@ const Entry = () => {
         plateNumber: vehicleData.plateNumber,
         spot: randomSpot.id,
         entryTime: Date.now(),
-        amount: 59 // total with tax
+        amount: 47 // total with tax (40 + 7)
       }));
 
       // Update spots occupancy
@@ -125,7 +146,7 @@ const Entry = () => {
   const handlePayment = () => {
     // Add revenue to total
     const currentRevenue = parseInt(localStorage.getItem('totalRevenue') || '0');
-    const newRevenue = currentRevenue + 59;
+    const newRevenue = currentRevenue + 47;
     localStorage.setItem('totalRevenue', newRevenue.toString());
     
     toast.success("Payment successful! Welcome to ParkWise!");
@@ -136,11 +157,11 @@ const Entry = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center justify-center gap-4 mb-8">
           <Button 
             variant="ghost" 
             onClick={() => navigate('/')}
-            className="text-slate-300 hover:text-white hover:bg-slate-800"
+            className="text-slate-300 hover:text-white hover:bg-slate-800 absolute left-6"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
             Back to Dashboard
@@ -180,7 +201,7 @@ const Entry = () => {
               <div className="bg-slate-900/50 p-8 rounded-lg border-2 border-dashed border-slate-600 text-center">
                 <Camera className="h-24 w-24 text-slate-500 mx-auto mb-4" />
                 <p className="text-slate-400 text-lg">Camera feed will appear here</p>
-                <p className="text-slate-500 text-sm mt-2">Webcam integration ready</p>
+                <p className="text-slate-500 text-sm mt-2">Camera not connected</p>
               </div>
               
               <div className="flex justify-center">
@@ -304,12 +325,8 @@ const Entry = () => {
               <div className="bg-slate-900/50 p-6 rounded-lg text-center">
                 <h3 className="text-lg font-semibold text-white mb-4">Scan to Pay with UPI</h3>
                 <div className="flex justify-center mb-4">
-                  <div className="bg-white p-4 rounded-lg">
-                    <img 
-                      src="/src/assets/upi-qr-code.png"
-                      alt="UPI QR Code for Payment" 
-                      className="w-48 h-48 object-contain"
-                    />
+                  <div className="bg-white p-8 rounded-lg w-48 h-48 flex items-center justify-center">
+                    <p className="text-slate-800 text-center font-semibold">UPI QR code for payment</p>
                   </div>
                 </div>
                 <p className="text-lg font-semibold text-purple-400 mb-2">ParkWise Payment</p>
@@ -323,6 +340,10 @@ const Entry = () => {
                   <div className="flex justify-between text-slate-300">
                     <span>Base Rate (4 hours)</span>
                     <span>₹{vehicleData.amount}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-300">
+                    <span>Overtime (₹12/hr)</span>
+                    <span>₹0</span>
                   </div>
                   <div className="flex justify-between text-slate-300">
                     <span>GST (18%)</span>
