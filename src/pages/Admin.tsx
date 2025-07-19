@@ -20,10 +20,13 @@ const Admin = () => {
   ]);
   const [newSpot, setNewSpot] = useState({ id: '', name: '', type: 'regular' });
   const [newVehicle, setNewVehicle] = useState({ plateNumber: '', adminPassword: '', spotId: '' });
+  const [removeVehicle, setRemoveVehicle] = useState({ plateNumber: '', adminPassword: '' });
   const [isAddingVehicle, setIsAddingVehicle] = useState(false);
+  const [isRemovingVehicle, setIsRemovingVehicle] = useState(false);
   const [isAddingSpot, setIsAddingSpot] = useState(false);
   const [revenue, setRevenue] = useState(0);
   const [dailyRevenue, setDailyRevenue] = useState(0);
+  const [passwordHistory, setPasswordHistory] = useState<string[]>([]);
 
   // Load spots from localStorage on component mount
   useEffect(() => {
@@ -33,15 +36,20 @@ const Admin = () => {
     }
   }, []);
 
-  // Load revenue from localStorage on component mount
+  // Load revenue and password history from localStorage on component mount
   useEffect(() => {
     const savedRevenue = localStorage.getItem('totalRevenue');
     const savedDailyRevenue = localStorage.getItem('dailyRevenue');
+    const savedHistory = localStorage.getItem('passwordHistory');
+    
     if (savedRevenue) {
       setRevenue(parseInt(savedRevenue));
     }
     if (savedDailyRevenue) {
       setDailyRevenue(parseInt(savedDailyRevenue));
+    }
+    if (savedHistory) {
+      setPasswordHistory(JSON.parse(savedHistory));
     }
   }, []);
 
@@ -53,6 +61,14 @@ const Admin = () => {
   const handleLogin = () => {
     if (password === "987321") {
       setIsAuthenticated(true);
+      
+      // Add to password history if not already present
+      if (!passwordHistory.includes(password)) {
+        const newHistory = [password, ...passwordHistory.slice(0, 4)]; // Keep last 5
+        setPasswordHistory(newHistory);
+        localStorage.setItem('passwordHistory', JSON.stringify(newHistory));
+      }
+      
       toast.success("Access granted! Welcome to Admin Panel");
     } else {
       toast.error("Invalid password! Please try again.");
@@ -151,6 +167,41 @@ const Admin = () => {
     }
   };
 
+  const handleRemoveVehicle = () => {
+    if (removeVehicle.plateNumber && removeVehicle.adminPassword) {
+      if (removeVehicle.adminPassword !== "987321") {
+        toast.error("Invalid admin password!");
+        return;
+      }
+
+      // Find the vehicle and free up the spot
+      const occupiedSpots = spots.filter(s => s.occupied);
+      const spotToFree = occupiedSpots.find(spot => {
+        // You might want to match by plate number if you store that info
+        return true; // For now, just free the first occupied spot
+      });
+
+      if (spotToFree) {
+        const updatedSpots = spots.map(s => 
+          s.id === spotToFree.id ? { ...s, occupied: false } : s
+        );
+        setSpots(updatedSpots);
+        localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
+        
+        // Clear current vehicle data
+        localStorage.removeItem('currentVehicle');
+        
+        setRemoveVehicle({ plateNumber: '', adminPassword: '' });
+        setIsRemovingVehicle(false);
+        toast.success("Vehicle removed successfully!");
+      } else {
+        toast.error("No vehicles found to remove!");
+      }
+    } else {
+      toast.error("Please fill in all fields");
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 flex items-center justify-center">
@@ -176,6 +227,26 @@ const Admin = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
               />
+              
+              {/* Quick Access Password History */}
+              {passwordHistory.length > 0 && (
+                <div className="mt-3">
+                  <Label className="text-slate-400 text-sm">Quick Access:</Label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {passwordHistory.slice(0, 3).map((pwd, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPassword(pwd)}
+                        className="border-slate-600 text-slate-400 hover:bg-slate-700 text-xs"
+                      >
+                        Recent {index + 1}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex gap-4">
               <Button 
@@ -314,6 +385,13 @@ const Admin = () => {
                   <Plus className="h-4 w-4 mr-2" />
                   Add Vehicle
                 </Button>
+                <Button 
+                  onClick={() => setIsRemovingVehicle(true)}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Remove Vehicle
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -428,6 +506,57 @@ const Admin = () => {
                       onClick={() => {
                         setIsAddingVehicle(false);
                         setNewVehicle({ plateNumber: '', adminPassword: '', spotId: '' });
+                      }}
+                      variant="outline"
+                      className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Remove Vehicle Form */}
+            {isRemovingVehicle && (
+              <Card className="mb-6 bg-slate-900/50 border-slate-600">
+                <CardHeader>
+                  <CardTitle className="text-white text-lg">Remove Vehicle</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-slate-300">Plate Number</Label>
+                      <Input
+                        placeholder="e.g., MH12AB1234"
+                        className="bg-slate-800 border-slate-600 text-white"
+                        value={removeVehicle.plateNumber}
+                        onChange={(e) => setRemoveVehicle({...removeVehicle, plateNumber: e.target.value})}
+                      />
+                    </div>
+                     <div>
+                       <Label className="text-slate-300">Admin Password</Label>
+                       <Input
+                         type="password"
+                         placeholder="Enter admin password"
+                         className="bg-slate-800 border-slate-600 text-white"
+                         value={removeVehicle.adminPassword}
+                         onChange={(e) => setRemoveVehicle({...removeVehicle, adminPassword: e.target.value})}
+                       />
+                     </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <Button 
+                      onClick={handleRemoveVehicle}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Remove Vehicle
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setIsRemovingVehicle(false);
+                        setRemoveVehicle({ plateNumber: '', adminPassword: '' });
                       }}
                       variant="outline"
                       className="border-slate-600 text-slate-300 hover:bg-slate-800"

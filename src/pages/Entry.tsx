@@ -91,7 +91,7 @@ const Entry = () => {
       }
       
       toast.success("Number plate entered successfully!");
-      setShowDisabilityPrompt(true);
+      setStep(2);
     }
   };
 
@@ -103,9 +103,25 @@ const Entry = () => {
       filteredSpots = availableSpots.filter(spot => 
         spot.type === 'electric' && !spot.occupied
       );
+      // If no electric spots, allow regular spots
+      if (filteredSpots.length === 0) {
+        filteredSpots = availableSpots.filter(spot => 
+          spot.type === 'regular' && !spot.occupied
+        );
+      }
+    } else if (isDisabled) {
+      filteredSpots = availableSpots.filter(spot => 
+        spot.type === 'disability' && !spot.occupied
+      );
+      // If no disability spots, allow regular spots
+      if (filteredSpots.length === 0) {
+        filteredSpots = availableSpots.filter(spot => 
+          spot.type === 'regular' && !spot.occupied
+        );
+      }
     } else {
       filteredSpots = availableSpots.filter(spot => 
-        isDisabled ? spot.type === 'disability' && !spot.occupied : spot.type === 'regular' && !spot.occupied
+        spot.type === 'regular' && !spot.occupied
       );
     }
     
@@ -134,9 +150,8 @@ const Entry = () => {
       
       setStep(3);
     } else {
-      // Show bigger popup for no parking available
-      const spotType = isElectric ? 'electric' : (isDisabled ? 'disability' : 'regular');
-      toast.error(`No ${spotType} parking spots available!`);
+      // Only redirect if no spots at all are available
+      toast.error("No parking spots available! Redirecting to dashboard...");
       setTimeout(() => {
         navigate('/');
       }, 3000);
@@ -374,84 +389,52 @@ const Entry = () => {
           </Card>
         )}
 
-        {/* Disability Parking Prompt */}
-        {showDisabilityPrompt && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <Card className="bg-slate-800/90 border-slate-700 max-w-md mx-4">
-              <CardHeader className="text-center">
-                <CardTitle className="text-xl text-white">Disability Parking</CardTitle>
-                <CardDescription className="text-slate-400">
-                  Do you need disability parking assistance?
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex gap-4">
-                  <Button 
-                    onClick={() => handleDisabilityResponse(true)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    Yes
-                  </Button>
-                  <Button 
-                    onClick={() => handleDisabilityResponse(false)}
-                    className="flex-1 bg-slate-600 hover:bg-slate-700 text-white"
-                  >
-                    No
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
 
         {/* Disability Code Input */}
         {isDisabilityParking && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <Card className="bg-slate-800/90 border-slate-700 max-w-md mx-4">
               <CardHeader className="text-center">
+                <div className="mx-auto mb-4 p-6 bg-purple-600/20 rounded-full w-fit">
+                  <Scan className="h-16 w-16 text-purple-500" />
+                </div>
                 <CardTitle className="text-xl text-white">Disability Verification</CardTitle>
                 <CardDescription className="text-slate-400">
-                  Please scan your disability card or enter the code manually
+                  Card scanner not connected - enter verification code
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="bg-slate-900/50 p-8 rounded-lg border-2 border-dashed border-slate-600 text-center">
-                  <Camera className="h-16 w-16 text-slate-500 mx-auto mb-4" />
-                  <p className="text-slate-400">Card scanner ready</p>
+                <div className="space-y-2">
+                  <Label htmlFor="disability-code" className="text-slate-300">Verification Code</Label>
+                  <Input
+                    id="disability-code"
+                    type="password"
+                    placeholder="••••••"
+                    className="bg-slate-900 border-slate-600 text-white"
+                    value={disabilityCode}
+                    onChange={(e) => setDisabilityCode(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleDisabilityCodeSubmit()}
+                  />
                 </div>
-                
-                <div className="border-t border-slate-600 pt-4">
-                  <Label htmlFor="disability-code" className="text-slate-300">Manual Entry</Label>
-                  <div className="flex gap-2 mt-2">
-                    <Input 
-                      id="disability-code"
-                      type="password"
-                      placeholder="Enter disability verification code"
-                      className="bg-slate-900 border-slate-600 text-white"
-                      value={disabilityCode}
-                      onChange={(e) => setDisabilityCode(e.target.value)}
-                    />
-                    <Button 
-                      onClick={handleDisabilityCodeSubmit}
-                      disabled={!disabilityCode}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Verify
-                    </Button>
-                  </div>
+                <div className="flex gap-4">
+                  <Button 
+                    onClick={handleDisabilityCodeSubmit}
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    <Scan className="h-4 w-4 mr-2" />
+                    Verify
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setIsDisabilityParking(false);
+                      setDisabilityCode("");
+                    }}
+                    variant="outline"
+                    className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-800"
+                  >
+                    Cancel
+                  </Button>
                 </div>
-                
-                <Button 
-                  onClick={() => {
-                    setIsDisabilityParking(false);
-                    setDisabilityCode("");
-                    setStep(2);
-                  }}
-                  variant="outline"
-                  className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
-                >
-                  Skip Disability Parking
-                </Button>
               </CardContent>
             </Card>
           </div>
