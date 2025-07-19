@@ -4,19 +4,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Lock, Plus, Trash2, ToggleLeft, ToggleRight, Car } from "lucide-react";
+import { ArrowLeft, Lock, Plus, Trash2, Car } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+
+interface Vehicle {
+  plateNumber: string;
+  spotId: string;
+  entryTime: number;
+  amount: number;
+}
 
 const Admin = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [spots, setSpots] = useState([
-    { id: 'A-1', name: 'A-1', type: 'regular', occupied: false },
-    { id: 'A-2', name: 'A-2', type: 'regular', occupied: false },
-    { id: 'D-1', name: 'D-1', type: 'disability', occupied: false },
-    { id: 'E-1', name: 'E-1', type: 'electric', occupied: false },
+    { id: 'A-1', name: 'A-1', type: 'regular', occupied: false, plateNumber: '' },
+    { id: 'A-2', name: 'A-2', type: 'regular', occupied: false, plateNumber: '' },
+    { id: 'D-1', name: 'D-1', type: 'disability', occupied: false, plateNumber: '' },
+    { id: 'E-1', name: 'E-1', type: 'electric', occupied: false, plateNumber: '' },
   ]);
   const [newSpot, setNewSpot] = useState({ id: '', name: '', type: 'regular' });
   const [newVehicle, setNewVehicle] = useState({ plateNumber: '', adminPassword: '', spotId: '' });
@@ -26,7 +33,7 @@ const Admin = () => {
   const [isAddingSpot, setIsAddingSpot] = useState(false);
   const [revenue, setRevenue] = useState(0);
   const [dailyRevenue, setDailyRevenue] = useState(0);
-  const [passwordHistory, setPasswordHistory] = useState<string[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
   // Load spots from localStorage on component mount
   useEffect(() => {
@@ -36,20 +43,24 @@ const Admin = () => {
     }
   }, []);
 
-  // Load revenue and password history from localStorage on component mount
+  // Load vehicles from localStorage on component mount
+  useEffect(() => {
+    const savedVehicles = localStorage.getItem('parkedVehicles');
+    if (savedVehicles) {
+      setVehicles(JSON.parse(savedVehicles));
+    }
+  }, []);
+
+  // Load revenue from localStorage on component mount
   useEffect(() => {
     const savedRevenue = localStorage.getItem('totalRevenue');
     const savedDailyRevenue = localStorage.getItem('dailyRevenue');
-    const savedHistory = localStorage.getItem('passwordHistory');
     
     if (savedRevenue) {
       setRevenue(parseInt(savedRevenue));
     }
     if (savedDailyRevenue) {
       setDailyRevenue(parseInt(savedDailyRevenue));
-    }
-    if (savedHistory) {
-      setPasswordHistory(JSON.parse(savedHistory));
     }
   }, []);
 
@@ -58,17 +69,14 @@ const Admin = () => {
     localStorage.setItem('parkingSpots', JSON.stringify(spots));
   }, [spots]);
 
+  // Save vehicles to localStorage whenever vehicles change
+  useEffect(() => {
+    localStorage.setItem('parkedVehicles', JSON.stringify(vehicles));
+  }, [vehicles]);
+
   const handleLogin = () => {
     if (password === "987321") {
       setIsAuthenticated(true);
-      
-      // Add to password history if not already present
-      if (!passwordHistory.includes(password)) {
-        const newHistory = [password, ...passwordHistory.slice(0, 4)]; // Keep last 5
-        setPasswordHistory(newHistory);
-        localStorage.setItem('passwordHistory', JSON.stringify(newHistory));
-      }
-      
       toast.success("Access granted! Welcome to Admin Panel");
     } else {
       toast.error("Invalid password! Please try again.");
@@ -83,7 +91,7 @@ const Admin = () => {
 
   const handleAddSpot = () => {
     if (newSpot.id && newSpot.name) {
-      const spotToAdd = { ...newSpot, name: newSpot.id, occupied: false };
+      const spotToAdd = { ...newSpot, name: newSpot.id, occupied: false, plateNumber: '' };
       setSpots([...spots, spotToAdd]);
       setNewSpot({ id: '', name: '', type: 'regular' });
       setIsAddingSpot(false);
@@ -98,32 +106,6 @@ const Admin = () => {
     toast.success("Parking spot deleted successfully!");
   };
 
-  const handleToggleOccupancy = (spotId: string) => {
-    const spot = spots.find(s => s.id === spotId);
-    if (!spot) return;
-    
-    const newOccupied = !spot.occupied;
-    
-    // Only add revenue when marking as occupied (car entering)
-    // Never subtract revenue when marking as available
-    if (newOccupied) {
-      const newTotalRevenue = revenue + 47;
-      const newDailyRev = dailyRevenue + 47;
-      setRevenue(newTotalRevenue);
-      setDailyRevenue(newDailyRev);
-      localStorage.setItem('totalRevenue', newTotalRevenue.toString());
-      localStorage.setItem('dailyRevenue', newDailyRev.toString());
-    }
-    
-    const updatedSpots = spots.map(s => 
-      s.id === spotId ? { ...s, occupied: newOccupied } : s
-    );
-    setSpots(updatedSpots);
-    localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
-    
-    toast.success(`Spot ${spotId} marked as ${newOccupied ? 'occupied' : 'available'}`);
-  };
-
   const handleAddVehicle = () => {
     if (newVehicle.plateNumber && newVehicle.adminPassword && newVehicle.spotId) {
       if (newVehicle.adminPassword !== "987321") {
@@ -136,28 +118,28 @@ const Admin = () => {
         return;
       }
 
-      // Mark spot as occupied
+      // Mark spot as occupied and add plate number
       const updatedSpots = spots.map(s => 
-        s.id === newVehicle.spotId ? { ...s, occupied: true } : s
+        s.id === newVehicle.spotId ? { ...s, occupied: true, plateNumber: newVehicle.plateNumber } : s
       );
       setSpots(updatedSpots);
-      localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
+
+      // Add vehicle to vehicles list
+      const newVehicleData: Vehicle = {
+        plateNumber: newVehicle.plateNumber,
+        spotId: newVehicle.spotId,
+        entryTime: Date.now(),
+        amount: 40
+      };
+      setVehicles([...vehicles, newVehicleData]);
 
       // Add revenue
-      const newTotalRevenue = revenue + 47;
-      const newDailyRev = dailyRevenue + 47;
+      const newTotalRevenue = revenue + 40;
+      const newDailyRev = dailyRevenue + 40;
       setRevenue(newTotalRevenue);
       setDailyRevenue(newDailyRev);
       localStorage.setItem('totalRevenue', newTotalRevenue.toString());
       localStorage.setItem('dailyRevenue', newDailyRev.toString());
-
-      // Store vehicle data
-      localStorage.setItem('currentVehicle', JSON.stringify({
-        plateNumber: newVehicle.plateNumber,
-        spot: newVehicle.spotId,
-        entryTime: Date.now(),
-        amount: 47 // Updated base rate
-      }));
 
       setNewVehicle({ plateNumber: '', adminPassword: '', spotId: '' });
       setIsAddingVehicle(false);
@@ -174,29 +156,26 @@ const Admin = () => {
         return;
       }
 
-      // Find the vehicle and free up the spot
-      const occupiedSpots = spots.filter(s => s.occupied);
-      const spotToFree = occupiedSpots.find(spot => {
-        // You might want to match by plate number if you store that info
-        return true; // For now, just free the first occupied spot
-      });
-
-      if (spotToFree) {
-        const updatedSpots = spots.map(s => 
-          s.id === spotToFree.id ? { ...s, occupied: false } : s
-        );
-        setSpots(updatedSpots);
-        localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
-        
-        // Clear current vehicle data
-        localStorage.removeItem('currentVehicle');
-        
-        setRemoveVehicle({ plateNumber: '', adminPassword: '' });
-        setIsRemovingVehicle(false);
-        toast.success("Vehicle removed successfully!");
-      } else {
-        toast.error("No vehicles found to remove!");
+      // Find the vehicle
+      const vehicleToRemove = vehicles.find(v => v.plateNumber === removeVehicle.plateNumber);
+      if (!vehicleToRemove) {
+        toast.error("Vehicle not found!");
+        return;
       }
+
+      // Free up the spot
+      const updatedSpots = spots.map(s => 
+        s.id === vehicleToRemove.spotId ? { ...s, occupied: false, plateNumber: '' } : s
+      );
+      setSpots(updatedSpots);
+
+      // Remove vehicle from vehicles list
+      const updatedVehicles = vehicles.filter(v => v.plateNumber !== removeVehicle.plateNumber);
+      setVehicles(updatedVehicles);
+      
+      setRemoveVehicle({ plateNumber: '', adminPassword: '' });
+      setIsRemovingVehicle(false);
+      toast.success("Vehicle removed successfully!");
     } else {
       toast.error("Please fill in all fields");
     }
@@ -227,26 +206,6 @@ const Admin = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
               />
-              
-              {/* Quick Access Password History */}
-              {passwordHistory.length > 0 && (
-                <div className="mt-3">
-                  <Label className="text-slate-400 text-sm">Quick Access:</Label>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {passwordHistory.slice(0, 3).map((pwd, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPassword(pwd)}
-                        className="border-slate-600 text-slate-400 hover:bg-slate-700 text-xs"
-                      >
-                        Recent {index + 1}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
             <div className="flex gap-4">
               <Button 
@@ -603,6 +562,11 @@ const Admin = () => {
                       }`}>
                         {spot.occupied ? 'OCCUPIED' : 'AVAILABLE'}
                       </div>
+                      {spot.occupied && spot.plateNumber && (
+                        <div className="text-yellow-400 text-sm font-medium mt-1">
+                          🚗 {spot.plateNumber}
+                        </div>
+                      )}
                     </div>
                      <div className="flex gap-2">
                        <Button 
