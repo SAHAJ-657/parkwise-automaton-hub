@@ -35,19 +35,26 @@ const Admin = () => {
   const [dailyRevenue, setDailyRevenue] = useState(0);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
-  // Load spots from localStorage on component mount
+  // Load spots and sync with vehicles on component mount
   useEffect(() => {
     const savedSpots = localStorage.getItem('parkingSpots');
-    if (savedSpots) {
-      setSpots(JSON.parse(savedSpots));
-    }
-  }, []);
-
-  // Load vehicles from localStorage on component mount
-  useEffect(() => {
     const savedVehicles = localStorage.getItem('parkedVehicles');
-    if (savedVehicles) {
-      setVehicles(JSON.parse(savedVehicles));
+    
+    if (savedSpots) {
+      const spotsData = JSON.parse(savedSpots);
+      const vehiclesData = savedVehicles ? JSON.parse(savedVehicles) : [];
+      
+      // Sync spots with current vehicles
+      const syncedSpots = spotsData.map(spot => {
+        const vehicle = vehiclesData.find(v => v.spotId === spot.id);
+        if (vehicle) {
+          return { ...spot, occupied: true, plateNumber: vehicle.plateNumber };
+        }
+        return { ...spot, occupied: false, plateNumber: '' };
+      });
+      
+      setSpots(syncedSpots);
+      setVehicles(vehiclesData);
     }
   }, []);
 
@@ -563,7 +570,7 @@ const Admin = () => {
                         {spot.occupied ? 'OCCUPIED' : 'AVAILABLE'}
                       </div>
                       {spot.occupied && spot.plateNumber && (
-                        <div className="text-yellow-400 text-sm font-medium mt-1">
+                        <div className="text-yellow-400 text-sm font-bold mt-2 p-2 bg-slate-900/50 rounded border">
                           🚗 {spot.plateNumber}
                         </div>
                       )}
@@ -583,6 +590,36 @@ const Admin = () => {
                 </Card>
               ))}
             </div>
+
+            {/* Last 5 History Section */}
+            <Card className="mt-6 bg-slate-900/50 border-slate-600">
+              <CardHeader>
+                <CardTitle className="text-white">Last 5 Parking History</CardTitle>
+                <CardDescription className="text-slate-400">
+                  Recent parking activities and transactions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {vehicles.length === 0 ? (
+                  <div className="text-slate-400 text-center py-4">No parking history available</div>
+                ) : (
+                  <div className="space-y-2">
+                    {vehicles.slice(-5).reverse().map((vehicle, index) => (
+                      <div key={`${vehicle.plateNumber}-${vehicle.entryTime}`} className="flex items-center justify-between p-3 bg-slate-800/50 rounded border border-slate-700">
+                        <div className="flex items-center gap-4">
+                          <div className="text-yellow-400 font-bold">🚗 {vehicle.plateNumber}</div>
+                          <div className="text-slate-300">Spot: {vehicle.spotId}</div>
+                          <div className="text-slate-400 text-sm">
+                            {new Date(vehicle.entryTime).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="text-green-400 font-semibold">₹{vehicle.amount}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </CardContent>
         </Card>
       </div>
