@@ -35,41 +35,61 @@ const Admin = () => {
   const [dailyRevenue, setDailyRevenue] = useState(0);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
-  // Load spots and sync with vehicles on component mount
-  useEffect(() => {
+  // Sync data from localStorage - refresh every time component is visible
+  const syncDataFromStorage = () => {
     const savedSpots = localStorage.getItem('parkingSpots');
     const savedVehicles = localStorage.getItem('parkedVehicles');
-    
-    if (savedSpots) {
-      const spotsData = JSON.parse(savedSpots);
-      const vehiclesData = savedVehicles ? JSON.parse(savedVehicles) : [];
-      
-      // Sync spots with current vehicles
-      const syncedSpots = spotsData.map(spot => {
-        const vehicle = vehiclesData.find(v => v.spotId === spot.id);
-        if (vehicle) {
-          return { ...spot, occupied: true, plateNumber: vehicle.plateNumber };
-        }
-        return { ...spot, occupied: false, plateNumber: '' };
-      });
-      
-      setSpots(syncedSpots);
-      setVehicles(vehiclesData);
-    }
-  }, []);
-
-  // Load revenue from localStorage on component mount
-  useEffect(() => {
     const savedRevenue = localStorage.getItem('totalRevenue');
     const savedDailyRevenue = localStorage.getItem('dailyRevenue');
     
-    if (savedRevenue) {
-      setRevenue(parseInt(savedRevenue));
-    }
-    if (savedDailyRevenue) {
-      setDailyRevenue(parseInt(savedDailyRevenue));
-    }
+    // Set default spots if nothing saved
+    const defaultSpots = [
+      { id: 'A-1', name: 'A-1', type: 'regular', occupied: false, plateNumber: '' },
+      { id: 'A-2', name: 'A-2', type: 'regular', occupied: false, plateNumber: '' },
+      { id: 'D-1', name: 'D-1', type: 'disability', occupied: false, plateNumber: '' },
+      { id: 'E-1', name: 'E-1', type: 'electric', occupied: false, plateNumber: '' },
+    ];
+    
+    const spotsData = savedSpots ? JSON.parse(savedSpots) : defaultSpots;
+    const vehiclesData = savedVehicles ? JSON.parse(savedVehicles) : [];
+    
+    // Sync spots with current vehicles
+    const syncedSpots = spotsData.map(spot => {
+      const vehicle = vehiclesData.find(v => v.spotId === spot.id);
+      if (vehicle) {
+        return { ...spot, occupied: true, plateNumber: vehicle.plateNumber };
+      }
+      return { ...spot, occupied: false, plateNumber: '' };
+    });
+    
+    setSpots(syncedSpots);
+    setVehicles(vehiclesData);
+    setRevenue(savedRevenue ? parseInt(savedRevenue) : 0);
+    setDailyRevenue(savedDailyRevenue ? parseInt(savedDailyRevenue) : 0);
+  };
+
+  // Load data on mount and when returning to tab
+  useEffect(() => {
+    syncDataFromStorage();
+    
+    // Refresh data when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        syncDataFromStorage();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also refresh data periodically while on admin page
+    const interval = setInterval(syncDataFromStorage, 2000);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(interval);
+    };
   }, []);
+
 
   // Save spots to localStorage whenever spots change
   useEffect(() => {
