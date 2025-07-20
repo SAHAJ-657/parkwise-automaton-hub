@@ -150,10 +150,16 @@ const Entry = () => {
         plateNumber: vehicleData.plateNumber,
         spotId: randomSpot.id,
         entryTime: Date.now(),
-        amount: 40
+        amount: 47
       };
       vehicles.push(newVehicle);
       localStorage.setItem('parkedVehicles', JSON.stringify(vehicles));
+
+      // Also add to parking history for permanent record
+      const savedHistory = localStorage.getItem('parkingHistory');
+      const history = savedHistory ? JSON.parse(savedHistory) : [];
+      history.push(newVehicle);
+      localStorage.setItem('parkingHistory', JSON.stringify(history));
 
       // Update spots occupancy with plate number
       const updatedSpots = availableSpots.map(spot => 

@@ -34,6 +34,7 @@ const Admin = () => {
   const [revenue, setRevenue] = useState(0);
   const [dailyRevenue, setDailyRevenue] = useState(0);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [parkingHistory, setParkingHistory] = useState<Vehicle[]>([]);
 
   // Sync data from localStorage - refresh every time component is visible
   const syncDataFromStorage = () => {
@@ -64,6 +65,12 @@ const Admin = () => {
     
     setSpots(syncedSpots);
     setVehicles(vehiclesData);
+    
+    // Load parking history for history section
+    const savedHistory = localStorage.getItem('parkingHistory');
+    const historyData = savedHistory ? JSON.parse(savedHistory) : [];
+    setParkingHistory(historyData);
+    
     setRevenue(savedRevenue ? parseInt(savedRevenue) : 0);
     setDailyRevenue(savedDailyRevenue ? parseInt(savedDailyRevenue) : 0);
   };
@@ -159,6 +166,11 @@ const Admin = () => {
         amount: 40
       };
       setVehicles([...vehicles, newVehicleData]);
+
+      // Also add to parking history
+      const updatedHistory = [...parkingHistory, newVehicleData];
+      setParkingHistory(updatedHistory);
+      localStorage.setItem('parkingHistory', JSON.stringify(updatedHistory));
 
       // Add revenue
       const newTotalRevenue = revenue + 40;
@@ -620,12 +632,12 @@ const Admin = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {vehicles.length === 0 ? (
+                {parkingHistory.length === 0 ? (
                   <div className="text-slate-400 text-center py-4">No parking history available</div>
                 ) : (
                   <div className="space-y-2">
-                    {vehicles.slice(-5).reverse().map((vehicle, index) => (
-                      <div key={`${vehicle.plateNumber}-${vehicle.entryTime}`} className="flex items-center justify-between p-3 bg-slate-800/50 rounded border border-slate-700">
+                    {parkingHistory.slice(-5).reverse().map((vehicle, index) => (
+                      <div key={`${vehicle.plateNumber}-${vehicle.entryTime}-${index}`} className="flex items-center justify-between p-3 bg-slate-800/50 rounded border border-slate-700">
                         <div className="flex items-center gap-4">
                           <div className="text-yellow-400 font-bold">🚗 {vehicle.plateNumber}</div>
                           <div className="text-slate-300">Spot: {vehicle.spotId}</div>
