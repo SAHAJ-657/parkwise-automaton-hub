@@ -135,16 +135,29 @@ const Entry = () => {
       }));
       
       // Store the assignment for exit process and update spot occupancy
-      localStorage.setItem('currentVehicle', JSON.stringify({
+      const vehicleEntry = {
         plateNumber: vehicleData.plateNumber,
         spot: randomSpot.id,
         entryTime: Date.now(),
         amount: 47 // total with tax (40 + 7)
-      }));
+      };
+      localStorage.setItem('currentVehicle', JSON.stringify(vehicleEntry));
 
-      // Update spots occupancy
+      // Also add to parkedVehicles array for admin panel sync
+      const savedVehicles = localStorage.getItem('parkedVehicles');
+      const vehicles = savedVehicles ? JSON.parse(savedVehicles) : [];
+      const newVehicle = {
+        plateNumber: vehicleData.plateNumber,
+        spotId: randomSpot.id,
+        entryTime: Date.now(),
+        amount: 40
+      };
+      vehicles.push(newVehicle);
+      localStorage.setItem('parkedVehicles', JSON.stringify(vehicles));
+
+      // Update spots occupancy with plate number
       const updatedSpots = availableSpots.map(spot => 
-        spot.id === randomSpot.id ? { ...spot, occupied: true } : spot
+        spot.id === randomSpot.id ? { ...spot, occupied: true, plateNumber: vehicleData.plateNumber } : spot
       );
       localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
       

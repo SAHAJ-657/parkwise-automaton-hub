@@ -80,9 +80,17 @@ const Exit = () => {
     if (savedSpots) {
       const spots = JSON.parse(savedSpots);
       const updatedSpots = spots.map(spot => 
-        spot.id === exitData.spot ? { ...spot, occupied: false } : spot
+        spot.id === exitData.spot ? { ...spot, occupied: false, plateNumber: '' } : spot
       );
       localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
+    }
+    
+    // Remove vehicle from parkedVehicles array
+    const savedVehicles = localStorage.getItem('parkedVehicles');
+    if (savedVehicles) {
+      const vehicles = JSON.parse(savedVehicles);
+      const updatedVehicles = vehicles.filter(v => v.plateNumber !== exitData.plateNumber);
+      localStorage.setItem('parkedVehicles', JSON.stringify(updatedVehicles));
     }
     
     // Revenue should NOT decrease when vehicle exits (already paid)
