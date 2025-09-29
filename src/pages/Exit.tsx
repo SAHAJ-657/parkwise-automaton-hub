@@ -8,39 +8,6 @@ import { ArrowLeft, Camera, Clock, CreditCard, CheckCircle, AlertTriangle } from
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-// Fee calculation utility function
-const calculateParkingFee = (
-  entryTime: number,
-  exitTime: number,
-  planHours: number,
-  baseRate: number,
-  overtimeRate: number
-) => {
-  const durationMs = exitTime - entryTime;
-  const quarterHours = Math.ceil(durationMs / (15 * 60 * 1000)); // Round up to nearest 15 minutes
-  const durationHours = quarterHours * 0.25;
-  
-  let baseBilled = 0;
-  let overtimeBilled = 0;
-  let total = 0;
-  
-  if (durationHours <= planHours) {
-    baseBilled = durationHours;
-    total = durationHours * baseRate;
-  } else {
-    baseBilled = planHours;
-    overtimeBilled = durationHours - planHours;
-    total = (planHours * baseRate) + (overtimeBilled * overtimeRate);
-  }
-  
-  return {
-    durationHours: Math.round(durationHours * 100) / 100, // Round to 2 decimal places
-    baseBilled: Math.round(baseBilled * 100) / 100,
-    overtimeBilled: Math.round(overtimeBilled * 100) / 100,
-    total: Math.round(total)
-  };
-};
-
 const Exit = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -50,13 +17,8 @@ const Exit = () => {
     entryTime: "",
     exitTime: "",
     duration: 0,
-    planHours: 4,
-    baseRateSnapshot: 40,
-    overtimeRateSnapshot: 60,
-    baseBilled: 0,
-    overtimeBilled: 0,
-    paidAmount: 0,
-    additionalAmount: 0,
+    baseAmount: 50,
+    overtimeFee: 0,
     totalAmount: 0,
     spot: ""
   });
@@ -73,10 +35,12 @@ const Exit = () => {
     
     // Get stored vehicle data
     const storedVehicle = localStorage.getItem('currentVehicle');
-    let vehicleData;
+    let entryTime, spot;
     
     if (storedVehicle) {
-      vehicleData = JSON.parse(storedVehicle);
+      const vehicleData = JSON.parse(storedVehicle);
+      entryTime = new Date(vehicleData.entryTime);
+      spot = vehicleData.spot;
     } else {
       // Vehicle not found - allow exit
       toast.success("Vehicle not found - Exit granted!");
@@ -84,42 +48,23 @@ const Exit = () => {
       return;
     }
     
-    const entryTime = vehicleData.entryTime;
-    const exitTime = Date.now();
-    
-    // Calculate fees using the enhanced calculation
-    const feeCalculation = calculateParkingFee(
-      entryTime,
-      exitTime,
-      vehicleData.planHours || 4,
-      vehicleData.baseRateSnapshot || 40,
-      vehicleData.overtimeRateSnapshot || 60
-    );
-    
-    const paidAmount = vehicleData.amount || 0;
-    const additionalAmount = Math.max(0, feeCalculation.total - paidAmount);
+    const exitTime = new Date();
+    const durationMs = exitTime.getTime() - entryTime.getTime();
+    const durationHours = Math.max(0.1, Math.round((durationMs / (1000 * 60 * 60)) * 10) / 10);
+    const overtimeFee = durationHours > 4 ? Math.round((durationHours - 4) * 12) : 0;
 
     setExitData({
       plateNumber: plateToUse,
-      entryTime: new Date(entryTime).toLocaleString(),
-      exitTime: new Date(exitTime).toLocaleString(),
-      duration: feeCalculation.durationHours,
-      planHours: vehicleData.planHours || 4,
-      baseRateSnapshot: vehicleData.baseRateSnapshot || 40,
-      overtimeRateSnapshot: vehicleData.overtimeRateSnapshot || 60,
-      baseBilled: feeCalculation.baseBilled,
-      overtimeBilled: feeCalculation.overtimeBilled,
-      paidAmount,
-      additionalAmount,
-      totalAmount: feeCalculation.total,
-      spot: vehicleData.spot
+      entryTime: entryTime.toLocaleString(),
+      exitTime: exitTime.toLocaleString(),
+      duration: durationHours,
+      baseAmount: 40,
+      overtimeFee,
+      totalAmount: 0, // Customer already paid
+      spot: spot
     });
 
-    if (additionalAmount > 0) {
-      toast.success("Vehicle found! Additional payment required.");
-    } else {
-      toast.success("Vehicle found! No additional payment required.");
-    }
+    toast.success("Vehicle found in system!");
     setStep(2);
   };
 
@@ -140,41 +85,15 @@ const Exit = () => {
       localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
     }
     
-    // Remove vehicle from parkedVehicles array and add to complete history
+    // Remove vehicle from parkedVehicles array
     const savedVehicles = localStorage.getItem('parkedVehicles');
     if (savedVehicles) {
       const vehicles = JSON.parse(savedVehicles);
-      const exitingVehicle = vehicles.find(v => v.plateNumber === exitData.plateNumber);
       const updatedVehicles = vehicles.filter(v => v.plateNumber !== exitData.plateNumber);
       localStorage.setItem('parkedVehicles', JSON.stringify(updatedVehicles));
-      
-      // Update parking history with exit details
-      if (exitingVehicle) {
-        const savedHistory = localStorage.getItem('parkingHistory');
-        const history = savedHistory ? JSON.parse(savedHistory) : [];
-        const updatedHistory = history.map(h => 
-          h.plateNumber === exitData.plateNumber && h.entryTime === exitingVehicle.entryTime
-            ? { 
-                ...h, 
-                exitTime: Date.now(),
-                duration: exitData.duration,
-                totalAmount: exitData.totalAmount,
-                baseBilled: exitData.baseBilled,
-                overtimeBilled: exitData.overtimeBilled
-              }
-            : h
-        );
-        localStorage.setItem('parkingHistory', JSON.stringify(updatedHistory));
-      }
     }
     
-    // Add additional revenue if any
-    if (exitData.additionalAmount > 0) {
-      const currentRevenue = parseInt(localStorage.getItem('totalRevenue') || '0');
-      const newRevenue = currentRevenue + exitData.additionalAmount;
-      localStorage.setItem('totalRevenue', newRevenue.toString());
-    }
-    
+    // Revenue should NOT decrease when vehicle exits (already paid)
     localStorage.removeItem('currentVehicle');
     toast.success("Thank you for using ParkWise! Have a great day!");
     setTimeout(() => {
@@ -305,28 +224,12 @@ const Exit = () => {
                       <span className="text-white font-semibold">{exitData.duration}h</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Plan:</span>
-                      <span className="text-white font-semibold">{exitData.planHours}h plan</span>
+                      <span className="text-slate-400">Status:</span>
+                      <span className="text-green-400 font-semibold">PAID</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Base Hours:</span>
-                      <span className="text-white font-semibold">{exitData.baseBilled}h @ ₹{exitData.baseRateSnapshot}/h</span>
-                    </div>
-                    {exitData.overtimeBilled > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Overtime:</span>
-                        <span className="text-orange-400 font-semibold">{exitData.overtimeBilled}h @ ₹{exitData.overtimeRateSnapshot}/h</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Already Paid:</span>
-                      <span className="text-green-400 font-semibold">₹{exitData.paidAmount}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Additional Due:</span>
-                      <span className={`font-semibold ${exitData.additionalAmount > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                        ₹{exitData.additionalAmount}
-                      </span>
+                      <span className="text-slate-400">Amount Due:</span>
+                      <span className="text-green-400 font-semibold">₹0</span>
                     </div>
                   </div>
                 </div>
@@ -341,60 +244,28 @@ const Exit = () => {
                 </div>
                 <CardTitle className="text-2xl text-white">Ready to Exit</CardTitle>
                 <CardDescription className="text-slate-400">
-                  {exitData.additionalAmount === 0 
-                    ? "No additional payment required. You can exit now."
-                    : "Additional payment required before exit."
-                  }
+                  Payment already completed. You can exit now.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="bg-slate-900/50 p-6 rounded-lg text-center">
-                  <h3 className="text-lg text-slate-400 mb-2">Additional Amount Due</h3>
-                  <div className={`text-4xl font-bold mb-4 ${exitData.additionalAmount > 0 ? 'text-red-500' : 'text-green-500'}`}>
-                    ₹{exitData.additionalAmount}
-                  </div>
+                  <h3 className="text-lg text-slate-400 mb-2">Amount Due</h3>
+                  <div className="text-4xl font-bold mb-4 text-green-500">₹0</div>
                   <div className="text-sm text-slate-400 space-y-1">
-                    <div className="text-blue-400">Total Calculated: ₹{exitData.totalAmount}</div>
-                    <div className="text-green-400">Already Paid: ₹{exitData.paidAmount}</div>
-                    {exitData.additionalAmount === 0 && (
-                      <div className="text-green-400">✓ No additional charges</div>
-                    )}
-                    {exitData.additionalAmount > 0 && (
-                      <div className="text-red-400">⚠ Additional payment required</div>
-                    )}
+                    <div className="text-green-400">✓ Payment completed during entry</div>
+                    <div className="text-green-400">✓ No additional charges</div>
                   </div>
                 </div>
 
                 <div className="text-center">
-                  {exitData.additionalAmount === 0 ? (
-                    <Button 
-                      onClick={handleExit}
-                      className="bg-green-600 hover:bg-green-700 text-white py-6 px-12 text-xl"
-                      size="lg"
-                    >
-                      <CheckCircle className="mr-3 h-6 w-6" />
-                      Exit Now
-                    </Button>
-                  ) : (
-                    <div className="space-y-4">
-                      <Button 
-                        onClick={() => {
-                          // Add additional payment to revenue and then exit
-                          const currentRevenue = parseInt(localStorage.getItem('totalRevenue') || '0');
-                          const newRevenue = currentRevenue + exitData.additionalAmount;
-                          localStorage.setItem('totalRevenue', newRevenue.toString());
-                          toast.success(`Additional payment of ₹${exitData.additionalAmount} received!`);
-                          handleExit();
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white py-6 px-12 text-xl"
-                        size="lg"
-                      >
-                        <CreditCard className="mr-3 h-6 w-6" />
-                        Pay ₹{exitData.additionalAmount} & Exit
-                      </Button>
-                      <p className="text-slate-400 text-sm">Additional payment required for overtime parking</p>
-                    </div>
-                  )}
+                  <Button 
+                    onClick={handleExit}
+                    className="bg-green-600 hover:bg-green-700 text-white py-6 px-12 text-xl"
+                    size="lg"
+                  >
+                    <CheckCircle className="mr-3 h-6 w-6" />
+                    Exit Now
+                  </Button>
                 </div>
               </CardContent>
             </Card>

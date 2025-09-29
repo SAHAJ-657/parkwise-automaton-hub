@@ -1,20 +1,13 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, Camera, Scan, CreditCard, MapPin, Accessibility, Car, Clock } from "lucide-react";
+import { ArrowLeft, Camera, Scan, CreditCard, MapPin, Accessibility, Car } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import upiQrCode from "@/assets/upi-qr-code.png";
-
-interface ParkingSettings {
-  baseHourlyRate: number;
-  overtimeHourlyRate: number;
-  updatedAt: string;
-}
 
 const Entry = () => {
   const navigate = useNavigate();
@@ -22,36 +15,13 @@ const Entry = () => {
   const [showDisabilityPrompt, setShowDisabilityPrompt] = useState(false);
   const [disabilityCode, setDisabilityCode] = useState("");
   const [isDisabilityParking, setIsDisabilityParking] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<4 | 8>(4);
-  const [settings, setSettings] = useState<ParkingSettings>({
-    baseHourlyRate: 40,
-    overtimeHourlyRate: 60,
-    updatedAt: new Date().toISOString()
-  });
   const [vehicleData, setVehicleData] = useState({
     plateNumber: "",
     isDisability: false,
     isElectric: false,
     assignedSpot: "",
-    planHours: 4 as 4 | 8,
-    baseRateSnapshot: 40,
-    overtimeRateSnapshot: 60,
     amount: 40
   });
-
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('parkingSettings');
-    if (savedSettings) {
-      const loadedSettings = JSON.parse(savedSettings);
-      setSettings(loadedSettings);
-      setVehicleData(prev => ({
-        ...prev,
-        baseRateSnapshot: loadedSettings.baseHourlyRate,
-        overtimeRateSnapshot: loadedSettings.overtimeHourlyRate
-      }));
-    }
-  }, []);
 
   // Get available spots from localStorage
   const getAvailableSpots = () => {
@@ -105,16 +75,6 @@ const Entry = () => {
     }
     
     setStep(2);
-  };
-
-  const handlePlanSelection = () => {
-    // Update vehicle data with selected plan
-    setVehicleData(prev => ({
-      ...prev,
-      planHours: selectedPlan,
-      amount: selectedPlan * settings.baseHourlyRate
-    }));
-    setStep(3);
   };
 
   const handleManualEntry = () => {
@@ -174,15 +134,12 @@ const Entry = () => {
         assignedSpot: randomSpot.id
       }));
       
-        // Store the assignment for exit process and update spot occupancy with enhanced data
+      // Store the assignment for exit process and update spot occupancy
       const vehicleEntry = {
         plateNumber: vehicleData.plateNumber,
         spot: randomSpot.id,
         entryTime: Date.now(),
-        planHours: vehicleData.planHours,
-        baseRateSnapshot: vehicleData.baseRateSnapshot,
-        overtimeRateSnapshot: vehicleData.overtimeRateSnapshot,
-        amount: vehicleData.amount
+        amount: 47 // total with tax (40 + 7)
       };
       localStorage.setItem('currentVehicle', JSON.stringify(vehicleEntry));
 
@@ -193,10 +150,7 @@ const Entry = () => {
         plateNumber: vehicleData.plateNumber,
         spotId: randomSpot.id,
         entryTime: Date.now(),
-        planHours: vehicleData.planHours,
-        baseRateSnapshot: vehicleData.baseRateSnapshot,
-        overtimeRateSnapshot: vehicleData.overtimeRateSnapshot,
-        amount: vehicleData.amount
+        amount: 47
       };
       vehicles.push(newVehicle);
       localStorage.setItem('parkedVehicles', JSON.stringify(vehicles));
@@ -213,7 +167,7 @@ const Entry = () => {
       );
       localStorage.setItem('parkingSpots', JSON.stringify(updatedSpots));
       
-      setStep(4);
+      setStep(3);
     } else {
       // Only redirect if no spots at all are available
       toast.error("No parking spots available! Redirecting to dashboard...");
@@ -226,7 +180,7 @@ const Entry = () => {
   const handlePayment = () => {
     // Add revenue to total
     const currentRevenue = parseInt(localStorage.getItem('totalRevenue') || '0');
-    const newRevenue = currentRevenue + vehicleData.amount;
+    const newRevenue = currentRevenue + 47;
     localStorage.setItem('totalRevenue', newRevenue.toString());
     
     toast.success("Payment successful! Welcome to ParkWise!");
@@ -252,14 +206,14 @@ const Entry = () => {
         {/* Progress Indicator */}
         <div className="flex justify-center mb-8">
           <div className="flex items-center space-x-4">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className="flex items-center">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
                   step >= i ? 'bg-green-600' : 'bg-slate-600'
                 }`}>
                   {i}
                 </div>
-                {i < 4 && <div className={`w-16 h-1 ${step > i ? 'bg-green-600' : 'bg-slate-600'}`} />}
+                {i < 3 && <div className={`w-16 h-1 ${step > i ? 'bg-green-600' : 'bg-slate-600'}`} />}
               </div>
             ))}
           </div>
@@ -319,90 +273,8 @@ const Entry = () => {
           </Card>
         )}
 
-        {/* Step 2: Plan Selection */}
+        {/* Step 2: Disability Check */}
         {step === 2 && (
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-6 bg-blue-600/20 rounded-full w-fit">
-                <Clock className="h-16 w-16 text-blue-500" />
-              </div>
-              <CardTitle className="text-2xl text-white">Select Parking Plan</CardTitle>
-              <CardDescription className="text-slate-400">
-                Detected: <span className="text-white font-mono">{vehicleData.plateNumber}</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="text-center">
-                <p className="text-slate-300 text-lg mb-6">Choose your parking duration plan:</p>
-              </div>
-
-              <RadioGroup 
-                value={selectedPlan.toString()} 
-                onValueChange={(value) => setSelectedPlan(parseInt(value) as 4 | 8)}
-                className="grid md:grid-cols-2 gap-6"
-              >
-                <Label htmlFor="plan-4h" className="cursor-pointer">
-                  <Card className={`bg-slate-900/50 border-2 transition-colors ${
-                    selectedPlan === 4 ? 'border-blue-500 bg-blue-900/20' : 'border-slate-600 hover:border-blue-400'
-                  }`}>
-                    <CardContent className="p-6 text-center">
-                      <div className="flex items-center justify-center mb-4">
-                        <RadioGroupItem value="4" id="plan-4h" className="mr-3" />
-                        <Clock className="h-10 w-10 text-blue-500" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-white mb-2">4-Hour Plan</h3>
-                      <div className="text-3xl font-bold text-blue-400 mb-2">
-                        ₹{(4 * settings.baseHourlyRate).toFixed(0)}
-                      </div>
-                      <p className="text-slate-400 text-sm mb-3">
-                        ₹{settings.baseHourlyRate}/hour for 4 hours
-                      </p>
-                      <p className="text-slate-500 text-xs">
-                        Overtime: ₹{settings.overtimeHourlyRate}/hour after 4h
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Label>
-
-                <Label htmlFor="plan-8h" className="cursor-pointer">
-                  <Card className={`bg-slate-900/50 border-2 transition-colors ${
-                    selectedPlan === 8 ? 'border-green-500 bg-green-900/20' : 'border-slate-600 hover:border-green-400'
-                  }`}>
-                    <CardContent className="p-6 text-center">
-                      <div className="flex items-center justify-center mb-4">
-                        <RadioGroupItem value="8" id="plan-8h" className="mr-3" />
-                        <Clock className="h-10 w-10 text-green-500" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-white mb-2">8-Hour Plan</h3>
-                      <div className="text-3xl font-bold text-green-400 mb-2">
-                        ₹{(8 * settings.baseHourlyRate).toFixed(0)}
-                      </div>
-                      <p className="text-slate-400 text-sm mb-3">
-                        ₹{settings.baseHourlyRate}/hour for 8 hours
-                      </p>
-                      <p className="text-slate-500 text-xs">
-                        Overtime: ₹{settings.overtimeHourlyRate}/hour after 8h
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Label>
-              </RadioGroup>
-
-              <div className="text-center">
-                <Button 
-                  onClick={handlePlanSelection}
-                  className="bg-blue-600 hover:bg-blue-700 text-white py-3 px-8"
-                  size="lg"
-                >
-                  Continue with {selectedPlan}-Hour Plan
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 3: Vehicle Type Selection */}
-        {step === 3 && (
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 p-6 bg-purple-600/20 rounded-full w-fit">
@@ -457,8 +329,8 @@ const Entry = () => {
           </Card>
         )}
 
-        {/* Step 4: Payment */}
-        {step === 4 && (
+        {/* Step 3: Payment */}
+        {step === 3 && (
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 p-6 bg-green-600/20 rounded-full w-fit">
@@ -500,21 +372,21 @@ const Entry = () => {
                 <h3 className="text-lg font-semibold text-white mb-4">Payment Details</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between text-slate-300">
-                    <span>{vehicleData.planHours}-Hour Plan</span>
+                    <span>Base Rate (4 hours)</span>
                     <span>₹{vehicleData.amount}</span>
                   </div>
                   <div className="flex justify-between text-slate-300">
-                    <span>Rate: ₹{vehicleData.baseRateSnapshot}/hour</span>
-                    <span>{vehicleData.planHours} hours</span>
+                    <span>Overtime (₹12/hr)</span>
+                    <span>₹0</span>
                   </div>
                   <div className="flex justify-between text-slate-300">
-                    <span>Overtime Rate</span>
-                    <span>₹{vehicleData.overtimeRateSnapshot}/hour (after {vehicleData.planHours}h)</span>
+                    <span>GST (18%)</span>
+                    <span>₹{Math.round(vehicleData.amount * 0.18)}</span>
                   </div>
                   <div className="border-t border-slate-600 pt-2">
                     <div className="flex justify-between text-white font-semibold text-lg">
                       <span>Total Amount</span>
-                      <span>₹{vehicleData.amount}</span>
+                      <span>₹{vehicleData.amount + Math.round(vehicleData.amount * 0.18)}</span>
                     </div>
                   </div>
                 </div>
@@ -528,7 +400,7 @@ const Entry = () => {
                   size="lg"
                 >
                   <CreditCard className="mr-3 h-6 w-6" />
-                  Complete Payment ₹{vehicleData.amount}
+                  Complete Payment ₹{vehicleData.amount + Math.round(vehicleData.amount * 0.18)}
                 </Button>
                 <p className="text-slate-400 text-sm mt-2">Supports all major UPI apps</p>
               </div>
