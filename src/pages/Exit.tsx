@@ -35,12 +35,15 @@ const Exit = () => {
     
     // Get stored vehicle data
     const storedVehicle = localStorage.getItem('currentVehicle');
-    let entryTime, spot;
+    let entryTime, spot, planHours, baseRate, overtimeRate;
     
     if (storedVehicle) {
       const vehicleData = JSON.parse(storedVehicle);
       entryTime = new Date(vehicleData.entryTime);
       spot = vehicleData.spot;
+      planHours = vehicleData.planHours || 4;
+      baseRate = vehicleData.baseRateSnapshot || 40;
+      overtimeRate = vehicleData.overtimeRateSnapshot || 60;
     } else {
       // Vehicle not found - allow exit
       toast.success("Vehicle not found - Exit granted!");
@@ -50,17 +53,37 @@ const Exit = () => {
     
     const exitTime = new Date();
     const durationMs = exitTime.getTime() - entryTime.getTime();
-    const durationHours = Math.max(0.1, Math.round((durationMs / (1000 * 60 * 60)) * 10) / 10);
-    const overtimeFee = durationHours > 4 ? Math.round((durationHours - 4) * 12) : 0;
+    
+    // Round to nearest 15 minutes
+    const quarterHours = Math.ceil(durationMs / (15 * 60 * 1000));
+    const durationHours = quarterHours * 0.25;
+    
+    // Calculate fees
+    let baseAmount = 0;
+    let overtimeFee = 0;
+    let additionalPayment = 0;
+    
+    if (durationHours <= planHours) {
+      // Within plan hours - no additional charge
+      baseAmount = durationHours * baseRate;
+      overtimeFee = 0;
+      additionalPayment = 0;
+    } else {
+      // Exceeded plan hours
+      const overtimeHours = durationHours - planHours;
+      baseAmount = planHours * baseRate;
+      overtimeFee = overtimeHours * overtimeRate;
+      additionalPayment = overtimeFee;
+    }
 
     setExitData({
       plateNumber: plateToUse,
       entryTime: entryTime.toLocaleString(),
       exitTime: exitTime.toLocaleString(),
       duration: durationHours,
-      baseAmount: 40,
-      overtimeFee,
-      totalAmount: 0, // Customer already paid
+      baseAmount: Math.round(baseAmount * 100) / 100,
+      overtimeFee: Math.round(overtimeFee * 100) / 100,
+      totalAmount: Math.round(additionalPayment * 100) / 100,
       spot: spot
     });
 
@@ -75,6 +98,13 @@ const Exit = () => {
   };
 
   const handleExit = () => {
+    // Add overtime revenue if applicable
+    if (exitData.totalAmount > 0) {
+      const currentRevenue = parseInt(localStorage.getItem('totalRevenue') || '0');
+      const newRevenue = currentRevenue + exitData.totalAmount;
+      localStorage.setItem('totalRevenue', newRevenue.toString());
+    }
+    
     // Update spot occupancy and clear stored vehicle data
     const savedSpots = localStorage.getItem('parkingSpots');
     if (savedSpots) {
@@ -93,8 +123,12 @@ const Exit = () => {
       localStorage.setItem('parkedVehicles', JSON.stringify(updatedVehicles));
     }
     
-    // Revenue should NOT decrease when vehicle exits (already paid)
     localStorage.removeItem('currentVehicle');
+    
+    if (exitData.totalAmount > 0) {
+      toast.success(`Additional payment of ₹${exitData.totalAmount} collected!`);
+    }
+    
     toast.success("Thank you for using ParkWise! Have a great day!");
     setTimeout(() => {
       toast.success(`Spot ${exitData.spot} is now available`);
@@ -224,12 +258,30 @@ const Exit = () => {
                       <span className="text-white font-semibold">{exitData.duration}h</span>
                     </div>
                     <div className="flex justify-between">
+                      <span className="text-slate-400">Base Hours Billed:</span>
+                      <span className="text-white font-semibold">
+                        {exitData.duration <= exitData.baseAmount / 40 ? exitData.duration.toFixed(2) : (exitData.baseAmount / 40).toFixed(2)}h
+                      </span>
+                    </div>
+                    {exitData.overtimeFee > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Overtime Hours:</span>
+                        <span className="text-orange-400 font-semibold">
+                          {(exitData.duration - (exitData.baseAmount / 40)).toFixed(2)}h
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
                       <span className="text-slate-400">Status:</span>
-                      <span className="text-green-400 font-semibold">PAID</span>
+                      <span className={`font-semibold ${exitData.totalAmount > 0 ? 'text-orange-400' : 'text-green-400'}`}>
+                        {exitData.totalAmount > 0 ? 'OVERTIME' : 'PAID'}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-400">Amount Due:</span>
-                      <span className="text-green-400 font-semibold">₹0</span>
+                      <span className="text-slate-400">Additional Due:</span>
+                      <span className={`font-semibold ${exitData.totalAmount > 0 ? 'text-orange-400' : 'text-green-400'}`}>
+                        ₹{exitData.totalAmount}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -239,32 +291,61 @@ const Exit = () => {
             {/* Exit Section */}
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader className="text-center">
-                <div className="mx-auto mb-4 p-6 bg-green-600/20 rounded-full w-fit">
-                  <CheckCircle className="h-16 w-16 text-green-500" />
+                <div className={`mx-auto mb-4 p-6 rounded-full w-fit ${
+                  exitData.totalAmount > 0 ? 'bg-orange-600/20' : 'bg-green-600/20'
+                }`}>
+                  {exitData.totalAmount > 0 ? (
+                    <AlertTriangle className="h-16 w-16 text-orange-500" />
+                  ) : (
+                    <CheckCircle className="h-16 w-16 text-green-500" />
+                  )}
                 </div>
-                <CardTitle className="text-2xl text-white">Ready to Exit</CardTitle>
+                <CardTitle className="text-2xl text-white">
+                  {exitData.totalAmount > 0 ? 'Overtime Payment Required' : 'Ready to Exit'}
+                </CardTitle>
                 <CardDescription className="text-slate-400">
-                  Payment already completed. You can exit now.
+                  {exitData.totalAmount > 0 
+                    ? 'Additional payment required for overtime hours' 
+                    : 'Payment completed. You can exit now.'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="bg-slate-900/50 p-6 rounded-lg text-center">
-                  <h3 className="text-lg text-slate-400 mb-2">Amount Due</h3>
-                  <div className="text-4xl font-bold mb-4 text-green-500">₹0</div>
-                  <div className="text-sm text-slate-400 space-y-1">
-                    <div className="text-green-400">✓ Payment completed during entry</div>
-                    <div className="text-green-400">✓ No additional charges</div>
+                <div className="bg-slate-900/50 p-6 rounded-lg">
+                  <h3 className="text-lg text-slate-400 mb-4 text-center">Payment Breakdown</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-slate-300">
+                      <span>Base Amount (Paid):</span>
+                      <span className="text-green-400">₹{exitData.baseAmount}</span>
+                    </div>
+                    {exitData.overtimeFee > 0 && (
+                      <div className="flex justify-between text-slate-300">
+                        <span>Overtime Charges:</span>
+                        <span className="text-orange-400">₹{exitData.overtimeFee}</span>
+                      </div>
+                    )}
+                    <div className="border-t border-slate-600 pt-2">
+                      <div className="flex justify-between text-white font-semibold text-lg">
+                        <span>Additional Payment:</span>
+                        <span className={exitData.totalAmount > 0 ? 'text-orange-400' : 'text-green-400'}>
+                          ₹{exitData.totalAmount}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="text-center">
                   <Button 
                     onClick={handleExit}
-                    className="bg-green-600 hover:bg-green-700 text-white py-6 px-12 text-xl"
+                    className={`py-6 px-12 text-xl ${
+                      exitData.totalAmount > 0 
+                        ? 'bg-orange-600 hover:bg-orange-700' 
+                        : 'bg-green-600 hover:bg-green-700'
+                    } text-white`}
                     size="lg"
                   >
                     <CheckCircle className="mr-3 h-6 w-6" />
-                    Exit Now
+                    {exitData.totalAmount > 0 ? `Pay ₹${exitData.totalAmount} & Exit` : 'Exit Now'}
                   </Button>
                 </div>
               </CardContent>

@@ -15,12 +15,14 @@ const Entry = () => {
   const [showDisabilityPrompt, setShowDisabilityPrompt] = useState(false);
   const [disabilityCode, setDisabilityCode] = useState("");
   const [isDisabilityParking, setIsDisabilityParking] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<4 | 8>(4);
   const [vehicleData, setVehicleData] = useState({
     plateNumber: "",
     isDisability: false,
     isElectric: false,
     assignedSpot: "",
-    amount: 40
+    amount: 40,
+    planHours: 4
   });
 
   // Get available spots from localStorage
@@ -127,11 +129,17 @@ const Entry = () => {
     
     if (filteredSpots.length > 0) {
       const randomSpot = filteredSpots[Math.floor(Math.random() * filteredSpots.length)];
+      
+      // Get current rate settings
+      const savedRates = localStorage.getItem('rateSettings');
+      const rates = savedRates ? JSON.parse(savedRates) : { baseHourlyRate: 40, overtimeHourlyRate: 60 };
+      
       setVehicleData(prev => ({ 
         ...prev, 
         isDisability: isDisabled,
         isElectric: isElectric,
-        assignedSpot: randomSpot.id
+        assignedSpot: randomSpot.id,
+        planHours: selectedPlan
       }));
       
       // Store the assignment for exit process and update spot occupancy
@@ -139,7 +147,9 @@ const Entry = () => {
         plateNumber: vehicleData.plateNumber,
         spot: randomSpot.id,
         entryTime: Date.now(),
-        amount: 47 // total with tax (40 + 7)
+        planHours: selectedPlan,
+        baseRateSnapshot: rates.baseHourlyRate,
+        overtimeRateSnapshot: rates.overtimeHourlyRate
       };
       localStorage.setItem('currentVehicle', JSON.stringify(vehicleEntry));
 
@@ -150,7 +160,9 @@ const Entry = () => {
         plateNumber: vehicleData.plateNumber,
         spotId: randomSpot.id,
         entryTime: Date.now(),
-        amount: 47
+        planHours: selectedPlan,
+        baseRateSnapshot: rates.baseHourlyRate,
+        overtimeRateSnapshot: rates.overtimeHourlyRate
       };
       vehicles.push(newVehicle);
       localStorage.setItem('parkedVehicles', JSON.stringify(vehicles));
@@ -178,9 +190,16 @@ const Entry = () => {
   };
 
   const handlePayment = () => {
+    // Get rate settings
+    const savedRates = localStorage.getItem('rateSettings');
+    const rates = savedRates ? JSON.parse(savedRates) : { baseHourlyRate: 40, overtimeHourlyRate: 60 };
+    
+    // Calculate base amount for selected plan
+    const baseAmount = selectedPlan * rates.baseHourlyRate;
+    
     // Add revenue to total
     const currentRevenue = parseInt(localStorage.getItem('totalRevenue') || '0');
-    const newRevenue = currentRevenue + 47;
+    const newRevenue = currentRevenue + baseAmount;
     localStorage.setItem('totalRevenue', newRevenue.toString());
     
     toast.success("Payment successful! Welcome to ParkWise!");
@@ -273,21 +292,72 @@ const Entry = () => {
           </Card>
         )}
 
-        {/* Step 2: Disability Check */}
+        {/* Step 2: Plan Selection & Parking Type */}
         {step === 2 && (
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 p-6 bg-purple-600/20 rounded-full w-fit">
                 <Accessibility className="h-16 w-16 text-purple-500" />
               </div>
-              <CardTitle className="text-2xl text-white">Parking Type Selection</CardTitle>
+              <CardTitle className="text-2xl text-white">Parking Plan & Type Selection</CardTitle>
               <CardDescription className="text-slate-400">
                 Detected: <span className="text-white font-mono">{vehicleData.plateNumber}</span>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Plan Selection */}
+              <div className="bg-slate-900/50 p-6 rounded-lg">
+                <h3 className="text-lg font-semibold text-white mb-4 text-center">Select Parking Plan</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Card 
+                    className={`cursor-pointer transition-all ${
+                      selectedPlan === 4 
+                        ? 'border-blue-500 bg-blue-600/20' 
+                        : 'border-slate-600 bg-slate-800/50'
+                    }`}
+                    onClick={() => setSelectedPlan(4)}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className="text-3xl font-bold text-blue-400 mb-2">4 Hours</div>
+                      <p className="text-slate-300 text-sm">Standard Plan</p>
+                      <div className="mt-3 text-lg font-semibold text-blue-500">
+                        ₹{(() => {
+                          const savedRates = localStorage.getItem('rateSettings');
+                          const rates = savedRates ? JSON.parse(savedRates) : { baseHourlyRate: 40 };
+                          return 4 * rates.baseHourlyRate;
+                        })()}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card 
+                    className={`cursor-pointer transition-all ${
+                      selectedPlan === 8 
+                        ? 'border-purple-500 bg-purple-600/20' 
+                        : 'border-slate-600 bg-slate-800/50'
+                    }`}
+                    onClick={() => setSelectedPlan(8)}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className="text-3xl font-bold text-purple-400 mb-2">8 Hours</div>
+                      <p className="text-slate-300 text-sm">Extended Plan</p>
+                      <div className="mt-3 text-lg font-semibold text-purple-500">
+                        ₹{(() => {
+                          const savedRates = localStorage.getItem('rateSettings');
+                          const rates = savedRates ? JSON.parse(savedRates) : { baseHourlyRate: 40 };
+                          return 8 * rates.baseHourlyRate;
+                        })()}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                <p className="text-slate-400 text-sm text-center mt-3">
+                  Overtime charges apply after plan hours
+                </p>
+              </div>
+
               <div className="text-center">
-                <p className="text-slate-300 text-lg mb-6">Select your vehicle and parking type:</p>
+                <p className="text-slate-300 text-lg mb-6">Select your parking type:</p>
               </div>
 
               <div className="grid md:grid-cols-3 gap-6">
@@ -372,23 +442,30 @@ const Entry = () => {
                 <h3 className="text-lg font-semibold text-white mb-4">Payment Details</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between text-slate-300">
-                    <span>Base Rate (4 hours)</span>
-                    <span>₹{vehicleData.amount}</span>
+                    <span>Selected Plan</span>
+                    <span className="font-semibold">{selectedPlan} hours</span>
                   </div>
                   <div className="flex justify-between text-slate-300">
-                    <span>Overtime (₹12/hr)</span>
-                    <span>₹0</span>
-                  </div>
-                  <div className="flex justify-between text-slate-300">
-                    <span>GST (18%)</span>
-                    <span>₹{Math.round(vehicleData.amount * 0.18)}</span>
+                    <span>Base Amount</span>
+                    <span>₹{(() => {
+                      const savedRates = localStorage.getItem('rateSettings');
+                      const rates = savedRates ? JSON.parse(savedRates) : { baseHourlyRate: 40 };
+                      return selectedPlan * rates.baseHourlyRate;
+                    })()}</span>
                   </div>
                   <div className="border-t border-slate-600 pt-2">
                     <div className="flex justify-between text-white font-semibold text-lg">
                       <span>Total Amount</span>
-                      <span>₹{vehicleData.amount + Math.round(vehicleData.amount * 0.18)}</span>
+                      <span>₹{(() => {
+                        const savedRates = localStorage.getItem('rateSettings');
+                        const rates = savedRates ? JSON.parse(savedRates) : { baseHourlyRate: 40 };
+                        return selectedPlan * rates.baseHourlyRate;
+                      })()}</span>
                     </div>
                   </div>
+                  <p className="text-slate-400 text-xs pt-2">
+                    Note: Overtime charges (if any) will be calculated at exit
+                  </p>
                 </div>
               </div>
 
@@ -400,7 +477,11 @@ const Entry = () => {
                   size="lg"
                 >
                   <CreditCard className="mr-3 h-6 w-6" />
-                  Complete Payment ₹{vehicleData.amount + Math.round(vehicleData.amount * 0.18)}
+                  Complete Payment ₹{(() => {
+                    const savedRates = localStorage.getItem('rateSettings');
+                    const rates = savedRates ? JSON.parse(savedRates) : { baseHourlyRate: 40 };
+                    return selectedPlan * rates.baseHourlyRate;
+                  })()}
                 </Button>
                 <p className="text-slate-400 text-sm mt-2">Supports all major UPI apps</p>
               </div>

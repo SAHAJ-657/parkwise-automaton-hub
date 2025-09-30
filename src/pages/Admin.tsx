@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Lock, Plus, Trash2, Car } from "lucide-react";
+import { ArrowLeft, Lock, Plus, Trash2, Car, Settings as SettingsIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -12,7 +12,9 @@ interface Vehicle {
   plateNumber: string;
   spotId: string;
   entryTime: number;
-  amount: number;
+  planHours?: number;
+  baseRateSnapshot?: number;
+  overtimeRateSnapshot?: number;
 }
 
 const Admin = () => {
@@ -35,6 +37,7 @@ const Admin = () => {
   const [dailyRevenue, setDailyRevenue] = useState(0);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [parkingHistory, setParkingHistory] = useState<Vehicle[]>([]);
+  const [currentRates, setCurrentRates] = useState({ baseHourlyRate: 40, overtimeHourlyRate: 60 });
 
   // Sync data from localStorage - refresh every time component is visible
   const syncDataFromStorage = () => {
@@ -70,6 +73,11 @@ const Admin = () => {
     const savedHistory = localStorage.getItem('parkingHistory');
     const historyData = savedHistory ? JSON.parse(savedHistory) : [];
     setParkingHistory(historyData);
+    
+    // Load current rates
+    const savedRates = localStorage.getItem('rateSettings');
+    const ratesData = savedRates ? JSON.parse(savedRates) : { baseHourlyRate: 40, overtimeHourlyRate: 60 };
+    setCurrentRates(ratesData);
     
     setRevenue(savedRevenue ? parseInt(savedRevenue) : 0);
     setDailyRevenue(savedDailyRevenue ? parseInt(savedDailyRevenue) : 0);
@@ -163,7 +171,9 @@ const Admin = () => {
         plateNumber: newVehicle.plateNumber,
         spotId: newVehicle.spotId,
         entryTime: Date.now(),
-        amount: 40
+        planHours: 4,
+        baseRateSnapshot: currentRates.baseHourlyRate,
+        overtimeRateSnapshot: currentRates.overtimeHourlyRate
       };
       setVehicles([...vehicles, newVehicleData]);
 
@@ -173,8 +183,9 @@ const Admin = () => {
       localStorage.setItem('parkingHistory', JSON.stringify(updatedHistory));
 
       // Add revenue
-      const newTotalRevenue = revenue + 40;
-      const newDailyRev = dailyRevenue + 40;
+      const baseAmount = 4 * currentRates.baseHourlyRate;
+      const newTotalRevenue = revenue + baseAmount;
+      const newDailyRev = dailyRevenue + baseAmount;
       setRevenue(newTotalRevenue);
       setDailyRevenue(newDailyRev);
       localStorage.setItem('totalRevenue', newTotalRevenue.toString());
@@ -285,15 +296,44 @@ const Admin = () => {
             </Button>
             <h1 className="text-3xl font-bold text-white">Admin Panel</h1>
           </div>
-          <Button 
-            onClick={handleLogout}
-            variant="outline"
-            className="border-slate-600 text-slate-300 hover:bg-slate-800"
-          >
-            <Lock className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex gap-3">
+            <Button 
+              onClick={() => navigate('/settings')}
+              variant="outline"
+              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+            >
+              <SettingsIcon className="h-4 w-4 mr-2" />
+              Rate Settings
+            </Button>
+            <Button 
+              onClick={handleLogout}
+              variant="outline"
+              className="border-slate-600 text-slate-300 hover:bg-slate-800"
+            >
+              <Lock className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
+
+        {/* Current Rates Display */}
+        <Card className="bg-slate-800/50 border-slate-700 mb-6">
+          <CardHeader>
+            <CardTitle className="text-white">Current Rates</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-slate-900/50 p-4 rounded-lg">
+                <span className="text-slate-400">Base Hourly Rate:</span>
+                <span className="text-green-500 font-bold ml-2">₹{currentRates.baseHourlyRate}/hr</span>
+              </div>
+              <div className="bg-slate-900/50 p-4 rounded-lg">
+                <span className="text-slate-400">Overtime Hourly Rate:</span>
+                <span className="text-orange-500 font-bold ml-2">₹{currentRates.overtimeHourlyRate}/hr</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Current Stats */}
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
@@ -644,8 +684,13 @@ const Admin = () => {
                           <div className="text-slate-400 text-sm">
                             {new Date(vehicle.entryTime).toLocaleString()}
                           </div>
+                          <div className="text-blue-400 text-sm">
+                            Plan: {vehicle.planHours || 4}h
+                          </div>
                         </div>
-                        <div className="text-green-400 font-semibold">₹{vehicle.amount}</div>
+                        <div className="text-green-400 font-semibold">
+                          ₹{(vehicle.planHours || 4) * (vehicle.baseRateSnapshot || 40)}
+                        </div>
                       </div>
                     ))}
                   </div>

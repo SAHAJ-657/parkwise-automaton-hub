@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Entry from "./pages/Entry";
 import Exit from "./pages/Exit";
 import Admin from "./pages/Admin";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/entry" element={<Entry />} />
           <Route path="/exit" element={<Exit />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
